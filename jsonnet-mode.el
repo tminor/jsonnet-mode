@@ -212,7 +212,7 @@ The rules for Jsonnet indenting are as follows:
       (indent-to calculated-indent))))
 
 ;;;###autoload
-(define-derived-mode jsonnet-mode prog-mode "jsonnet"
+(define-derived-mode jsonnet-mode prog-mode "Jsonnet"
   "jsonnet-mode is a major mode for editing .jsonnet files."
   :syntax-table jsonnet-mode-syntax-table
   (setq-local font-lock-defaults '(jsonnet-font-lock-keywords ;; keywords

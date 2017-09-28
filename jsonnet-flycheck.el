@@ -47,8 +47,5 @@
   :modes jsonnet-mode
   :predicate (lambda () (buffer-file-name)))
 
-
-(add-to-list 'flycheck-checkers 'jsonnet)
-
 (provide 'jsonnnet-flycheck)
 ;;; jsonnet-flycheck.el ends here
