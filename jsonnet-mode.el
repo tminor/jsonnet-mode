@@ -208,7 +208,7 @@ The rules for Jsonnet indenting are as follows:
   (let ((calculated-indent (jsonnet-calculate-indent)))
     (when calculated-indent
       (back-to-indentation)
-      (delete-backward-char (current-indentation))
+      (delete-char (current-indentation))
       (indent-to calculated-indent))))
 
 ;;;###autoload
