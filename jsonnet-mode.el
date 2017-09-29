@@ -354,7 +354,7 @@ The rules for Jsonnet indenting are as follows:
           (when (<= start curr-point end)
             (buffer-substring start end)))))))
 
-(defun find-jsonnet-function-at-point ()
+(defun jsonnet-find-function-at-point ()
   "Jumps to the definition of the Jsonnet function at point."
   (interactive)
   (let ((current-identifier (get-identifier-at-location)))
