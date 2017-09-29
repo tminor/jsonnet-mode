@@ -294,6 +294,7 @@ The rules for Jsonnet indenting are as follows:
       (display-buffer (current-buffer)
                       '((display-buffer-reuse-window
                          display-buffer-pop-up-window
+                         display-buffer-at-bottom
                          display-buffer-pop-up-frame))))))
 
 (defun is-import-str (start)
