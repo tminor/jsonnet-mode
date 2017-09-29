@@ -14,6 +14,11 @@ local testFunction3 = function(a, b, c) {
     "my value",
 };
 
+local testIdentifierWithNoNumbers = null;
+local testIdentifierWith1Number = null;
+local test_identifier_with_underscores = null;
+local test_identifier_with_underscores_and_1_number = null;
+
 {
   /*
    *

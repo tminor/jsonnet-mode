@@ -333,25 +333,34 @@ The rules for Jsonnet indenting are as follows:
         (goto-char function-def)
       (message (concat "Unable to find definition for " func-name ".")))))
 
-(defun location-over-identifier-p (&optional location)
-  "Returns t if the provided location is over a Jsonnet identifier. If not provided, current point is used."
+(defun get-identifier-at-location (&optional location)
+  "Returns the identifier at the provided location if the location is over a Jsonnet identifier. If not provided, current point is used."
   (save-excursion
     (when location
       (goto-char location))
-    (let ((curr-point) (point)
+    (let ((curr-point (point))
           (curr-char (char-after)))
       (when (or (eq ?_ curr-char)
                 (<= ?a curr-char ?z)
                 (<= ?A curr-char ?Z)
                 (<= ?0 curr-char ?9))
-        (let ((start (posix-search-backward "[_a-zA-Z][_a-zA-Z0-9]*" nil t))
-              (end   (posix-search-forward "[_a-zA-Z][_a-zA-Z0-9]*" nil t)))
-          (<= start curr-point end))))))
+        (let ((start (save-excursion
+                       (skip-chars-backward "[:alnum:]_")
+                       (skip-chars-forward "[:digit:]")
+                       (point)))
+              (end   (save-excursion
+                       (skip-chars-forward "[:alnum:]_")
+                       (point))))
+          (when (<= start curr-point end)
+            (buffer-substring start end)))))))
 
 (defun find-jsonnet-function-at-point ()
   "Jumps to the definition of the Jsonnet function at point."
   (interactive)
-  ())
+  (let ((current-identifier (get-identifier-at-location)))
+    (if current-identifier
+        (find-jsonnet-function-with-name-in-file current-identifier)
+      (message "Point is not over a valid Jsonnet identifier."))))
 
 (defvar jsonnet-mode-map
   (let ((map (make-sparse-keymap)))
