@@ -116,9 +116,9 @@ returns nil."
     (line-matches-regex-p "[:{[]\s*$")))
 
 (defun curr-line-ends-with-close-brace-or-close-bracket-p ()
-  "Returns t if the current line ends with } or } followed by comma or semicolon, otherwise returns
+  "Returns t if the current line ends with } or } followed by comma, ;, { or [, otherwise returns
 nil."
-  (line-matches-regex-p "[]}]\s*[,;]?\s*$"))
+  (line-matches-regex-p "[]}]\s*\\(,\\(\s*[{[]\\)?\\|;\\)?\s*$"))
 
 (defun prev-line-ends-with-comma-without-colon-or-brace-p ()
   "Returns t if the previous line ends with a comma and does not contain a colon."
