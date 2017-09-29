@@ -21,14 +21,14 @@ local test_identifier_with_underscores_and_1_number = null;
 
 {
   /*
-   *
+   * This is a comment
    */
   myVisibleOutput: testFunction("test1", "test2"),
   myHiddenOutput:: "hidden" + $.wubba,
   myField1:
     "myValue1",
   mySubObject: {
-    a: 3,
+    a: 6,
     b: 45,
   },
   myMultilineString: |||

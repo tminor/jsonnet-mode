@@ -281,22 +281,20 @@ The rules for Jsonnet indenting are as follows:
 (defun jsonnet-eval ()
   "Run jsonnet with the path of the current file."
   (interactive)
-  (when (buffer-modified-p)
-    (when (y-or-n-p
-           (format "Save file %s? " buffer-file-name))
-      (save-buffer)))
-  (progn
-    (when (get-buffer "*jsonnet output*")
-      (kill-buffer "*jsonnet output*"))
-    (call-process jsonnet-command nil "*jsonnet output*" nil (buffer-file-name))
-    (set-buffer "*jsonnet output*")
-    (when (fboundp 'json-mode)
-      (json-mode))
-    (display-buffer
-     (get-buffer "*jsonnet output*")
-     '((display-buffer-reuse-window
-        display-buffer-pop-up-window
-        display-buffer-pop-up-frame)))))
+  (let ((buffer-to-eval (buffer-file-name)))
+    (when (buffer-modified-p)
+      (when (y-or-n-p
+             (format "Save file %s? " buffer-to-eval))
+        (save-buffer)))
+    (with-current-buffer (get-buffer-create "*jsonnet output*")
+      (erase-buffer)
+      (call-process jsonnet-command nil t nil buffer-to-eval)
+      (when (fboundp 'json-mode)
+        (json-mode))
+      (display-buffer (current-buffer)
+                      '((display-buffer-reuse-window
+                         display-buffer-pop-up-window
+                         display-buffer-pop-up-frame))))))
 
 (defun is-import-str (start)
   "Return non-nil if, from START we find 'import '."
@@ -314,24 +312,18 @@ The rules for Jsonnet indenting are as follows:
                    (importfile (buffer-substring (+ (nth 8 parse) 1) (- end 1))))
               (find-file importfile))))))
 
-(defun find-jsonnet-function-with-name-in-file (func-name)
+(defun jsonnet-find-definition-of-identifier-in-file (identifier)
   "Jumps to the definition of the jsonnet function with the provided name."
-  (let* ((local-func-def1 (concat "local\s+" func-name "\s*=\s*function"))
-         (local-func-def2 (concat "local\s+" func-name "(.*)\s*="))
-         (inner-func-def (concat func-name "\\:+"))
-         (full-regex (concat "\\("
-                             local-func-def1
-                             "\\|"
-                             local-func-def2
-                             "\\|"
-                             inner-func-def
-                             "\\)"))
-         (function-def (save-excursion
+  (interactive "sFind definition with name: ")
+  (let* ((local-def (concat "local\s+" identifier "[^[:alnum:]_]"))
+         (inner-def (concat identifier "\\:+"))
+         (full-regex (concat "\\(" local-def "\\|" inner-def "\\)"))
+         (identifier-def (save-excursion
                          (goto-char (point-max))
                          (re-search-backward full-regex nil t))))
-    (if function-def
-        (goto-char function-def)
-      (message (concat "Unable to find definition for " func-name ".")))))
+    (if identifier-def
+        (goto-char identifier-def)
+      (message (concat "Unable to find definition for " identifier ".")))))
 
 (defun get-identifier-at-location (&optional location)
   "Returns the identifier at the provided location if the location is over a Jsonnet identifier. If not provided, current point is used."
@@ -359,7 +351,7 @@ The rules for Jsonnet indenting are as follows:
   (interactive)
   (let ((current-identifier (get-identifier-at-location)))
     (if current-identifier
-        (find-jsonnet-function-with-name-in-file current-identifier)
+        (jsonnet-find-definition-of-identifier-in-file current-identifier)
       (message "Point is not over a valid Jsonnet identifier."))))
 
 (defvar jsonnet-mode-map
