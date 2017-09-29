@@ -105,8 +105,8 @@ returns nil."
     (line-matches-regex-p "[:{]\s*$")))
 
 (defun curr-line-ends-with-close-brace-p ()
-  "Returns t if the current line ends with } or } followed by comma, otherwise returns nil."
-  (line-matches-regex-p "\\}\s*,?\s*$"))
+  "Returns t if the current line ends with } or } followed by comma or semicolon, otherwise returns nil."
+  (line-matches-regex-p "\\}\s*[,;]?\s*$"))
 
 (defun prev-line-ends-with-comma-without-colon-or-brace-p ()
   "Returns t if the previous line ends with a comma and does not contain a colon."
@@ -166,18 +166,6 @@ returns nil."
             (goto-char current-block-comment)
             (+ 1 (current-column)))
 
-           ;; If the previous line ends with a : or {, or the line opens a multiline string, increase indentation.
-           ;; e.g.
-           ;; |  myField:
-           ;; |    o
-           ;; or
-           ;; |  myField: {
-           ;; |    o
-           ((prev-line-ends-with-open-brace-or-colon-p)
-            (print "Previous line ended with open brace or colon")
-            (backward-to-indentation)
-            (+ tab-width (current-column)))
-
            ;; If the current line ends with a close brace and the previous line ends with a comma without colon or brace, doubly de-indent.
            ;; e.g.
            ;; |  myField:
@@ -189,6 +177,18 @@ returns nil."
             (print "Current line ended with close brace and last line ended with comma without colon")
             (backward-to-indentation)
             (- (current-column) (* 2 tab-width)))
+
+           ;; If the previous line ends with a : or {, or the line opens a multiline string, increase indentation.
+           ;; e.g.
+           ;; |  myField:
+           ;; |    o
+           ;; or
+           ;; |  myField: {
+           ;; |    o
+           ((prev-line-ends-with-open-brace-or-colon-p)
+            (print "Previous line ended with open brace or colon")
+            (backward-to-indentation)
+            (+ tab-width (current-column)))
 
            ;; If the current line ends with a }, decrease indentation.
            ;; e.g.
@@ -277,6 +277,7 @@ The rules for Jsonnet indenting are as follows:
                                    ))
   (setq-local indent-line-function 'jsonnet-indent))
 
+;; Utilities for evaluating and jumping around Jsonnet code.
 (defun jsonnet-eval ()
   "Run jsonnet with the path of the current file."
   (interactive)
@@ -313,17 +314,44 @@ The rules for Jsonnet indenting are as follows:
                    (importfile (buffer-substring (+ (nth 8 parse) 1) (- end 1))))
               (find-file importfile))))))
 
-;; (defun find-jsonnet-function-with-name (func-name)
-;;   "Jumps to the definition of the jsonnet function with the provided name."
-;;   (let* ((local-func-def1 (concat "local\s+" func-name "\s*=\s*function"))
-;;          (local-func-def2 (concat "local\s+" func-name "\\(.*\\)\s*="))
-;;          (inner-func-def (concat func-name "\\:+"))
-;;          (full-regex (regexp-opt (list local-func-def1
-;;                                        local-func-def2
-;;                                        inner-func-def))))
-;;     (unless (re-search-backward local-func-def2 1 t)
-;;       (message (concat "Unable to find definition for " func-name ".")))))
+(defun find-jsonnet-function-with-name-in-file (func-name)
+  "Jumps to the definition of the jsonnet function with the provided name."
+  (let* ((local-func-def1 (concat "local\s+" func-name "\s*=\s*function"))
+         (local-func-def2 (concat "local\s+" func-name "(.*)\s*="))
+         (inner-func-def (concat func-name "\\:+"))
+         (full-regex (concat "\\("
+                             local-func-def1
+                             "\\|"
+                             local-func-def2
+                             "\\|"
+                             inner-func-def
+                             "\\)"))
+         (function-def (save-excursion
+                         (goto-char (point-max))
+                         (re-search-backward full-regex nil t))))
+    (if function-def
+        (goto-char function-def)
+      (message (concat "Unable to find definition for " func-name ".")))))
 
+(defun location-over-identifier-p (&optional location)
+  "Returns t if the provided location is over a Jsonnet identifier. If not provided, current point is used."
+  (save-excursion
+    (when location
+      (goto-char location))
+    (let ((curr-point) (point)
+          (curr-char (char-after)))
+      (when (or (eq ?_ curr-char)
+                (<= ?a curr-char ?z)
+                (<= ?A curr-char ?Z)
+                (<= ?0 curr-char ?9))
+        (let ((start (posix-search-backward "[_a-zA-Z][_a-zA-Z0-9]*" nil t))
+              (end   (posix-search-forward "[_a-zA-Z][_a-zA-Z0-9]*" nil t)))
+          (<= start curr-point end))))))
+
+(defun find-jsonnet-function-at-point ()
+  "Jumps to the definition of the Jsonnet function at point."
+  (interactive)
+  ())
 
 (defvar jsonnet-mode-map
   (let ((map (make-sparse-keymap)))
