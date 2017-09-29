@@ -4,7 +4,7 @@
 
 ;; Author: Nick Lanham
 ;; URL: https://github.com/mgyucht/jsonnet-mode
-;; Version: 0.0.1
+;; Package-Version: 0.0.1
 ;; Keywords: languages
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -90,12 +90,12 @@
 
 ;; Indent rules
 (defun jsonnet--debug-print (str)
+  "Print out STR if jsonnet-enable-debug-print is non-nil."
   (when jsonnet-enable-debug-print
     (message str)))
 
 (defun jsonnet--find-current-block-comment ()
-  "Returns the position of the comment start if the point is inside of a block comment. Otherwise,
-returns nil."
+  "Return the position of the comment start if inside a block comment. Otherwise, return nil."
   (let* ((previous-comment-start (save-excursion (re-search-backward "\\/\\*" nil t)))
          (previous-comment-end (save-excursion (re-search-backward "\\*\\/" nil t)))
          (is-in-block-comment (and (integerp previous-comment-start)
@@ -104,24 +104,24 @@ returns nil."
     (when is-in-block-comment previous-comment-start)))
 
 (defun jsonnet--line-matches-regex-p (regex)
-  "Returns t if the current line matches the provided regular expression."
+  "Return t if the current line matches REGEX."
   (save-excursion
     (beginning-of-line)
     (integerp (re-search-forward regex (line-beginning-position 2) t))))
 
 (defun jsonnet--prev-line-ends-with-open-brace-or-open-bracket-or-colon-p ()
-  "Returns t if the previous line ends with { [ or :, otherwise returns nil."
+  "Return t if the previous line ends with { [ or :, otherwise return nil."
   (save-excursion
     (forward-line -1)
     (jsonnet--line-matches-regex-p "[:{[]\s*$")))
 
 (defun jsonnet--curr-line-ends-with-close-brace-or-close-bracket-p ()
-  "Returns t if the current line ends with } or } followed by comma, ;, { or [, otherwise returns
-nil."
+  "Return t if the current line ends with } or } followed by comma, ;, { or [.
+Otherwise return nil."
   (jsonnet--line-matches-regex-p "[]}]\s*\\(,\\(\s*[{[]\\)?\\|;\\)?\s*$"))
 
 (defun jsonnet--prev-line-ends-with-comma-without-colon-or-brace-p ()
-  "Returns t if the previous line ends with a comma and does not contain a colon."
+  "Return t if the previous line ends with a comma and does not contain a colon."
   (save-excursion
     (forward-line -1)
     (and (jsonnet--line-matches-regex-p ",\s*$")
@@ -129,7 +129,7 @@ nil."
          (not (jsonnet--line-matches-regex-p "\\}")))))
 
 (defun jsonnet--curr-line-inside-multiline-string-p ()
-  "Returns t if the beginning of the line is inside of a multiline string, otherwise returns nil."
+  "Return t if the beginning of the line is inside of a multiline string, otherwise return nil."
   (save-excursion
     (beginning-of-line)
     (let ((num-triple-pipe 0))
@@ -138,9 +138,9 @@ nil."
       (eq 1 (% num-triple-pipe 2)))))
 
 (defun jsonnet--curr-line-has-multiline-string-p (opens-multiline-string)
-  "If opens-multiline-string is not nil, returns t if the current line begins outside a multiline
-string and ends inside one, otherwise returns nil. If opens-multiline-string is nil, returns t if
-the current line begins inside a multiline string and ends outside one, otherwise returns nil."
+  "If OPENS-MULTILINE-STRING is not nil, return t if the current line begins outside a multiline
+string and ends inside one, otherwise return nil. If OPEN-MULTILINE-STRING is nil, return t if
+the current line begins inside a multiline string and ends outside one, otherwise return nil."
  (save-excursion
    (beginning-of-line)
    ;; The previous line opens a multiline string if it contains ||| and there are an odd number of
@@ -151,19 +151,19 @@ the current line begins inside a multiline string and ends outside one, otherwis
          (jsonnet--curr-line-inside-multiline-string-p)))))
 
 (defun jsonnet--prev-line-opened-multiline-string-p ()
-  "Returns t if the previous line opened a multiline string, otherwise returns nil."
+  "Return t if the previous line opened a multiline string, otherwise return nil."
   (save-excursion
     (forward-line -1)
     (jsonnet--curr-line-has-multiline-string-p t)))
 
 (defun jsonnet--prev-line-closed-multiline-string-p ()
-  "Returns t if the previous line closed a multiline string, otherwise returns nil."
+  "Return t if the previous line closed a multiline string, otherwise return nil."
   (save-excursion
     (forward-line -1)
     (jsonnet--curr-line-has-multiline-string-p nil)))
 
 (defun jsonnet-curr-line-closed-multiline-string-p ()
-  "Returns t if the current line closed a multiline string, otherwise returns nil."
+  "Return t if the current line closed a multiline string, otherwise return nil."
   (jsonnet--curr-line-has-multiline-string-p nil))
 
 (defun jsonnet-calculate-indent ()
@@ -231,7 +231,7 @@ the current line begins inside a multiline string and ends outside one, otherwis
            ;; |    myValue,
            ;; |}
            ;;  ^ proper indentation.
-           ((and (curr-line-ends-with-close-brace-p)
+           ((and (jsonnet--curr-line-ends-with-close-brace-or-close-bracket-p)
                  (jsonnet--prev-line-ends-with-comma-without-colon-or-brace-p))
             (jsonnet--debug-print "Current line ended with close brace and last line ended with comma without colon")
             (backward-to-indentation)
@@ -341,7 +341,7 @@ the current line begins inside a multiline string and ends outside one, otherwis
               (find-file importfile))))))
 
 (defun jsonnet-find-definition-of-identifier-in-file (identifier)
-  "Jumps to the definition of the jsonnet function with the provided name."
+  "Jump to the definition of the jsonnet function IDENTIFIER."
   (interactive "sFind definition with name: ")
   (let* ((local-def (concat "local\s+" identifier "[^[:alnum:]_]"))
          (inner-def (concat identifier "\\:+"))
@@ -354,8 +354,8 @@ the current line begins inside a multiline string and ends outside one, otherwis
       (message (concat "Unable to find definition for " identifier ".")))))
 
 (defun jsonnet--get-identifier-at-location (&optional location)
-  "Returns the identifier at the provided location if the location is over a Jsonnet identifier. If
-not provided, current point is used."
+  "Return the identifier at LOCATION if over a Jsonnet identifier.
+If not provided, current point is used."
   (save-excursion
     (when location
       (goto-char location))

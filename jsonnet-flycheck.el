@@ -4,7 +4,7 @@
 
 ;; Author: Nick Lanham
 ;; URL: https://github.com/mgyucht/jsonnet-mode
-;; Version: 0.0.1
+;; Package-Version: 0.0.1
 ;; Keywords: languages
 
 ;; This program is free software; you can redistribute it and/or modify
