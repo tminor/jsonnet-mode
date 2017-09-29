@@ -8,6 +8,9 @@ Provides Emacs font-lock, indentation, and some useful functions for the Jsonnet
 **Table of Contents**
 
 - [Dependencies](#dependencies)
+- [Indentation](#indentation)
+- [Configuration](#configuration)
+- [Known Issues](#known-issues)
 
 <!-- markdown-toc end -->
 
