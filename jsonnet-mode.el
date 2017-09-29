@@ -46,7 +46,7 @@
 
 (defcustom jsonnet-enable-debug-print
   t
-  "If non-nil, enables debug printing in jsonnet-mode functions."
+  "If non-nil, enables debug printing in ‘jsonnet-mode’ functions."
   :type '(boolean)
   :group 'jsonnet)
 
@@ -59,7 +59,7 @@
    '("\\([[:digit:]]+\\(?:\\.[[:digit:]]+\\)?\\)" . font-lock-constant-face)
    '("\\(?:std\\.\\(?:assertEqual\\|base64\\(?:Decode\\(?:Bytes\\)?\\)?\\|c\\(?:har\\|o\\(?:\\(?:depoi\\|u\\)nt\\)\\)\\|e\\(?:ndsWith\\|scapeString\\(?:Bash\\|Dollars\\|\\(?:Js\\|Pyth\\)on\\)\\|xtVar\\)\\|f\\(?:ilter\\(?:Map\\)?\\|lattenArrays\\|o\\(?:ld[lr]\\|rmat\\)\\)\\|join\\|l\\(?:ength\\|ines\\)\\|m\\(?:a\\(?:keArray\\|nifest\\(?:Ini\\|Python\\(?:Vars\\)?\\)\\|p\\)\\|d5\\|ergePatch\\)\\|object\\(?:Fields\\(?:All\\)?\\|Has\\(?:All\\)?\\)\\|parseInt\\|range\\|s\\(?:et\\(?:Diff\\|Inter\\|Union\\)?\\|ort\\|plit\\(?:Limit\\)?\\|t\\(?:artsWith\\|ringChars\\)\\|ubstr\\)\\|t\\(?:hisFile\\|oString\\|ype\\)\\|uniq\\)\\)" . font-lock-function-name-face)
    )
-  "Minimal highlighting for jsonnet-mode.")
+  "Minimal highlighting for ‘jsonnet-mode’.")
 
 (defvar jsonnet-font-lock-keywords jsonnet-font-lock-keywords-1
   "Default highlighting expressions for jsonnet mode.")
@@ -90,7 +90,7 @@
 
 ;; Indent rules
 (defun jsonnet--debug-print (str)
-  "Print out STR if jsonnet-enable-debug-print is non-nil."
+  "Print out STR if ‘jsonnet-enable-debug-print’ is non-nil."
   (when jsonnet-enable-debug-print
     (message str)))
 
@@ -138,7 +138,8 @@ Otherwise return nil."
       (eq 1 (% num-triple-pipe 2)))))
 
 (defun jsonnet--curr-line-has-multiline-string-p (opens-multiline-string)
-  "If OPENS-MULTILINE-STRING is not nil, return t if the current line begins outside a multiline
+  "Return t if the current line is part of a multiline string.
+If OPENS-MULTILINE-STRING is not nil, return t if the current line begins outside a multiline
 string and ends inside one, otherwise return nil. If OPEN-MULTILINE-STRING is nil, return t if
 the current line begins inside a multiline string and ends outside one, otherwise return nil."
  (save-excursion
