@@ -22,4 +22,11 @@ local testFunction3 = function(a, b, c) {
   myHiddenOutput:: "hidden" + $.wubba,
   myField1:
     "myValue1",
+  mySubObject: {
+    a: 3,
+    b: 45,
+  },
+  myMultilineString: |||
+    It's a string.
+  |||,
 }
