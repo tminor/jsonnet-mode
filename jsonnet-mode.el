@@ -91,7 +91,7 @@
 ;; Indent rules
 (defun debug-print (str)
   (when jsonnet-enable-debug-print
-    (print str)))
+    (message str)))
 
 (defun find-current-block-comment ()
   "Returns the position of the comment start if the point is inside of a block comment. Otherwise,
@@ -109,16 +109,16 @@ returns nil."
     (beginning-of-line)
     (integerp (re-search-forward regex (line-beginning-position 2) t))))
 
-(defun prev-line-ends-with-open-brace-or-colon-p ()
-  "Returns t if the previous line ends with { or :, otherwise returns nil."
+(defun prev-line-ends-with-open-brace-or-open-bracket-or-colon-p ()
+  "Returns t if the previous line ends with { [ or :, otherwise returns nil."
   (save-excursion
     (forward-line -1)
-    (line-matches-regex-p "[:{]\s*$")))
+    (line-matches-regex-p "[:{[]\s*$")))
 
-(defun curr-line-ends-with-close-brace-p ()
+(defun curr-line-ends-with-close-brace-or-close-bracket-p ()
   "Returns t if the current line ends with } or } followed by comma or semicolon, otherwise returns
 nil."
-  (line-matches-regex-p "\\}\s*[,;]?\s*$"))
+  (line-matches-regex-p "[]}]\s*[,;]?\s*$"))
 
 (defun prev-line-ends-with-comma-without-colon-or-brace-p ()
   "Returns t if the previous line ends with a comma and does not contain a colon."
@@ -128,21 +128,27 @@ nil."
          (not (line-matches-regex-p ":"))
          (not (line-matches-regex-p "\\}")))))
 
+(defun curr-line-inside-multiline-string-p ()
+  "Returns t if the beginning of the line is inside of a multiline string, otherwise returns nil."
+  (save-excursion
+    (beginning-of-line)
+    (let ((num-triple-pipe 0))
+      (while (search-backward "|||" 0 t)
+        (setq num-triple-pipe (+ num-triple-pipe 1)))
+      (eq 1 (% num-triple-pipe 2)))))
+
 (defun curr-line-has-multiline-string-p (opens-multiline-string)
   "If opens-multiline-string is not nil, returns t if the current line begins outside a multiline
 string and ends inside one, otherwise returns nil. If opens-multiline-string is nil, returns t if
 the current line begins inside a multiline string and ends outside one, otherwise returns nil."
  (save-excursion
    (beginning-of-line)
-   (let ((num-triple-pipe 0))
-     ;; The previous line opens a multiline string if it contains ||| and there are an odd number of
-     ;; triple pipes before the current line.
-     (when (line-matches-regex-p "|||")
-       (forward-line)
-       (while (search-backward "|||" 0 t)
-         (setq num-triple-pipe (+ 1 num-triple-pipe)))
-       (eq (if opens-multiline-string t nil)
-           (eq 1 (% num-triple-pipe 2)))))))
+   ;; The previous line opens a multiline string if it contains ||| and there are an odd number of
+   ;; triple pipes before the current line.
+   (when (line-matches-regex-p "|||")
+     (forward-line)
+     (eq (if opens-multiline-string t nil)
+         (curr-line-inside-multiline-string-p)))))
 
 (defun prev-line-opened-multiline-string-p ()
   "Returns t if the previous line opened a multiline string, otherwise returns nil."
@@ -187,64 +193,6 @@ the current line begins inside a multiline string and ends outside one, otherwis
             (goto-char current-block-comment)
             (+ 1 (current-column)))
 
-           ;; If the current line ends with a close brace and the previous line ends with a comma
-           ;; without colon or brace, doubly de-indent.
-           ;; e.g.
-           ;; |  myField:
-           ;; |    myValue,
-           ;; |}
-           ;;  ^ proper indentation.
-           ((and (curr-line-ends-with-close-brace-p)
-                 (prev-line-ends-with-comma-without-colon-or-brace-p))
-            (debug-print "Current line ended with close brace and last line ended with comma without colon")
-            (backward-to-indentation)
-            (- (current-column) (* 2 tab-width)))
-
-           ;; If the previous line ends with a : or {, or the line opens a multiline string,
-           ;; increase indentation.
-           ;; e.g.
-           ;; |  myField:
-           ;; |    o
-           ;; or
-           ;; |  myField: {
-           ;; |    o
-           ((prev-line-ends-with-open-brace-or-colon-p)
-            (debug-print "Previous line ended with open brace or colon")
-            (backward-to-indentation)
-            (+ tab-width (current-column)))
-
-           ;; If the current line ends with a }, decrease indentation.
-           ;; e.g.
-           ;; |  myField: {
-           ;; |    innerField: innerValue,
-           ;; |  },
-           ;; |}
-           ;;  ^ proper indentation
-           ;; Note that the comma on the third line should not affect the indentation on the fourth
-           ;; line.
-           ;; If the previous line ends with a comma and does not have a : or |||, decrease
-           ;; indentation.
-           ;; e.g.
-           ;; |  myField:
-           ;; |    "myValue",
-           ;; |  o
-           ((or (curr-line-ends-with-close-brace-p)
-                (and (prev-line-ends-with-comma-without-colon-or-brace-p)
-                     (not (prev-line-closed-multiline-string-p))))
-            (debug-print "Current line ended with close brace or last line ended with comma without colon")
-            (backward-to-indentation)
-            (- (current-column) tab-width))
-
-           ;; If the previous line is a comment, use the indent of the comment.
-           ;; e.g.
-           ;; |  myField: "myValue",
-           ;; |  // a comment
-           ;; |  o
-           (previous-block-comment
-            (debug-print "Previous line is block comment")
-            (goto-char previous-block-comment)
-            (jsonnet-calculate-indent))
-
            ;; If the previous line opened a multiline string, and the current line does not close a
            ;; multiline string, increase indentation.
            ;; e.g.
@@ -266,6 +214,68 @@ the current line begins inside a multiline string and ends outside one, otherwis
             (debug-print "Current line closed multiline string")
             (backward-to-indentation)
             (- (current-column) tab-width))
+
+           ;; If the current line is inside of a multiline string, do nothing.
+           ;; e.g.
+           ;; |  myField: |||
+           ;; |    some text
+           ;; |    o
+           ((curr-line-inside-multiline-string-p)
+            (backward-to-indentation)
+            (current-column))
+
+           ;; If the current line ends with a close brace and the previous line ends with a comma
+           ;; without colon or brace, doubly de-indent.
+           ;; e.g.
+           ;; |  myField:
+           ;; |    myValue,
+           ;; |}
+           ;;  ^ proper indentation.
+           ((and (curr-line-ends-with-close-brace-p)
+                 (prev-line-ends-with-comma-without-colon-or-brace-p))
+            (debug-print "Current line ended with close brace and last line ended with comma without colon")
+            (backward-to-indentation)
+            (- (current-column) (* 2 tab-width)))
+
+           ;; If the previous line ends with a : or {, or the line opens a multiline string,
+           ;; increase indentation.
+           ;; e.g.
+           ;; |  myField:
+           ;; |    o
+           ;; or
+           ;; |  myField: {
+           ;; |    o
+           ;; or
+           ;; |  myField: [
+           ;; |    o
+           ((prev-line-ends-with-open-brace-or-open-bracket-or-colon-p)
+            (debug-print "Previous line ended with open brace or open bracket or colon")
+            (backward-to-indentation)
+            (+ tab-width (current-column)))
+
+           ;; If the current line ends with a }, decrease indentation.
+           ;; e.g.
+           ;; |  myField: {
+           ;; |    innerField: innerValue,
+           ;; |  },
+           ;; |}
+           ;;  ^ proper indentation
+           ;; Note that the comma on the third line should not affect the indentation on the fourth
+           ;; line.
+           ((curr-line-ends-with-close-brace-or-close-bracket-p)
+            (debug-print "Current line ended with close brace")
+            (backward-to-indentation)
+            (- (current-column) tab-width))
+
+           ;; If the previous line is a comment, use the indent of the comment.
+           ;; e.g.
+           ;; |  myField: "myValue",
+           ;; |  // a comment
+           ;; |  o
+           (previous-block-comment
+            (debug-print "Previous line is block comment")
+            (goto-char previous-block-comment)
+            (jsonnet-calculate-indent))
 
            ;; Otherwise, the indent is unchanged.
            (t

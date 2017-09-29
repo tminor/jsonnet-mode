@@ -29,6 +29,4 @@ There are two customizable parameters which you may configure in this mode:
 # Known Issues
 
 Indentation support is not perfect. Here are a couple known problems with it:
-- When inside of a multiline string, we should not indent at all.
 - When the parameter list to a function is multiple lines long, we should indent 2x tab-width.
-- When the previous line has an unmatched [, we should indent tab-width, and if the current line has an unmatched ], we should deindent tab-width.

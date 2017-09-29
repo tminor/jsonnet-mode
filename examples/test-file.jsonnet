@@ -27,11 +27,19 @@ local test_identifier_with_underscores_and_1_number = null;
   myHiddenOutput:: "hidden" + $.wubba,
   myField1:
     "myValue1",
-  mySubObject: {
+    mySubObject: {
     a: 6,
     b: 45,
   },
+  myArray: [
+    "a thing",
+    "another thing",
+    {
+      key1: "value1",
+    },
+  ],
   myMultilineString: |||
     It's a string.
+    With more stuff inside of it!.
   |||,
 }
