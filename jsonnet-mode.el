@@ -34,7 +34,7 @@
 ;; This mode binds two keys:
 ;;   'C-c e' evaluates the current buffer in jsonnet and put the output in an output buffer
 ;;   'M-.' Checks if the point (cursor) is inside an import string (like: import "foo.jsonnet")
-;;         and jumps to that file if it is.  You must be inside the actual string for this to work.
+;;         and jumps to that file if it is. You must be inside the actual string for this to work.
 
 ;;; Code:
 
@@ -69,7 +69,8 @@
     ;; ", ', and ||| are quotations in Jsonnet.
     (modify-syntax-entry ?' "\"" table)
     (modify-syntax-entry ?\" "\"" table)
-    (modify-syntax-entry ?| "\"" table) ; This incidentally also causes triple-quoted strings to be correctly highlighted.
+    (modify-syntax-entry ?| "\"" table) ; This incidentally also causes triple-quoted strings to be
+                                        ; correctly highlighted.
     ;; Our parenthesis, braces and brackets
     (modify-syntax-entry ?\( "()" table)
     (modify-syntax-entry ?\) ")(" table)
@@ -104,7 +105,8 @@ returns nil."
     (line-matches-regex-p "[:{]\s*$")))
 
 (defun curr-line-ends-with-close-brace-p ()
-  "Returns t if the current line ends with } or } followed by comma or semicolon, otherwise returns nil."
+  "Returns t if the current line ends with } or } followed by comma or semicolon, otherwise returns
+nil."
   (line-matches-regex-p "\\}\s*[,;]?\s*$"))
 
 (defun prev-line-ends-with-comma-without-colon-or-brace-p ()
@@ -116,11 +118,14 @@ returns nil."
          (not (line-matches-regex-p "\\}")))))
 
 (defun curr-line-has-multiline-string-p (opens-multiline-string)
-  "If opens-multiline-string is not nil, returns t if the current line begins outside a multiline string and ends inside one, otherwise returns nil. If opens-multiline-string is nil, returns t if the current line begins inside a multiline string and ends outside one, otherwise returns nil."
+  "If opens-multiline-string is not nil, returns t if the current line begins outside a multiline
+string and ends inside one, otherwise returns nil. If opens-multiline-string is nil, returns t if
+the current line begins inside a multiline string and ends outside one, otherwise returns nil."
  (save-excursion
    (beginning-of-line)
    (let ((num-triple-pipe 0))
-     ;; The previous line opens a multiline string if it contains ||| and there are an odd number of triple pipes before the current line.
+     ;; The previous line opens a multiline string if it contains ||| and there are an odd number of
+     ;; triple pipes before the current line.
      (when (line-matches-regex-p "|||")
        (forward-line)
        (while (search-backward "|||" 0 t)
@@ -149,6 +154,7 @@ returns nil."
   (interactive)
   (save-excursion
       (beginning-of-line)
+      ;; At the beginning of the file, the indentation should be 0.
       (if (bobp)
           0
         (let ((current-block-comment (find-current-block-comment))
@@ -156,7 +162,12 @@ returns nil."
                                         (beginning-of-line -1)
                                         (find-current-block-comment))))
           (cond
-           ;; If we are in a block comment, the indent should match the * at the beginning of the comment.
+           ;; NOTE: In all of these examples, the 'o' indicates the location of point after
+           ;; indenting on that line. If the indent of the line depends on the contents of the line
+           ;; itself, a '^' is used to indicate the proper indentation for the last line.
+           ;;
+           ;; If we are in a block comment, the indent should match the * at the beginning of the
+           ;; comment.
            ;; e.g.
            ;; |/*
            ;; | o
@@ -165,7 +176,8 @@ returns nil."
             (goto-char current-block-comment)
             (+ 1 (current-column)))
 
-           ;; If the current line ends with a close brace and the previous line ends with a comma without colon or brace, doubly de-indent.
+           ;; If the current line ends with a close brace and the previous line ends with a comma
+           ;; without colon or brace, doubly de-indent.
            ;; e.g.
            ;; |  myField:
            ;; |    myValue,
@@ -177,7 +189,8 @@ returns nil."
             (backward-to-indentation)
             (- (current-column) (* 2 tab-width)))
 
-           ;; If the previous line ends with a : or {, or the line opens a multiline string, increase indentation.
+           ;; If the previous line ends with a : or {, or the line opens a multiline string,
+           ;; increase indentation.
            ;; e.g.
            ;; |  myField:
            ;; |    o
@@ -196,8 +209,10 @@ returns nil."
            ;; |  },
            ;; |}
            ;;  ^ proper indentation
-           ;; Note that the comma on the third line should not affect the indentation on the fourth line.
-           ;; If the previous line ends with a comma and does not have a : or |||, decrease indentation.
+           ;; Note that the comma on the third line should not affect the indentation on the fourth
+           ;; line.
+           ;; If the previous line ends with a comma and does not have a : or |||, decrease
+           ;; indentation.
            ;; e.g.
            ;; |  myField:
            ;; |    "myValue",
@@ -219,7 +234,8 @@ returns nil."
             (goto-char previous-block-comment)
             (jsonnet-calculate-indent))
 
-           ;; If the previous line opened a multiline string, and the current line does not close a multiline string, increase indentation.
+           ;; If the previous line opened a multiline string, and the current line does not close a
+           ;; multiline string, increase indentation.
            ;; e.g.
            ;; |  myField: |||
            ;; |    o
@@ -244,19 +260,10 @@ returns nil."
            (t
             (print "Indent is unchanged")
             (backward-to-indentation)
-            (current-column))
-           )))))
+            (current-column)))))))
 
 (defun jsonnet-indent ()
-  "Indent current line according to Jsonnet syntax.
-The rules for Jsonnet indenting are as follows:
-1. At the beginning of the buffer, indent is 0.
-2. If the point is inside of a /* comment not started on this line, the indent is the same as that of the * in the /*.
-4. If the preceding line ends with { or :, the indent should increase by tab-width.
-5. If the current line ends with }, the indent should descrease by tab-width.
-6. If the current line terminates a multiline string, and does not start a multiline string, the indent should decrease by tab-width.
-7. If the preceding line ends with a comma and does not include a : and does not end a multiline string, the indent should decrease by tab-width.
-8. Otherwise, the indent is the same as the preceding line."
+  "Indent current line according to Jsonnet syntax."
   (interactive)
   (let ((calculated-indent (jsonnet-calculate-indent)))
     (when calculated-indent
@@ -326,7 +333,8 @@ The rules for Jsonnet indenting are as follows:
       (message (concat "Unable to find definition for " identifier ".")))))
 
 (defun get-identifier-at-location (&optional location)
-  "Returns the identifier at the provided location if the location is over a Jsonnet identifier. If not provided, current point is used."
+  "Returns the identifier at the provided location if the location is over a Jsonnet identifier. If
+not provided, current point is used."
   (save-excursion
     (when location
       (goto-char location))

@@ -14,3 +14,7 @@ Provides Emacs font-lock, indentation, and some useful functions for the Jsonnet
 # Dependencies
 
 The `jsonnet-eval` method depends on the `jsonnet` binary, which should be available on your `exec-path`. Install this on OSX with Homebrew by running `brew install jsonnet`.
+
+# Indentation
+
+The indentation rules are a set of rules which I put together based on my experience with Jsonnet. You can see them by looking at the implementation of `jsonnet-calculate-indent`.
