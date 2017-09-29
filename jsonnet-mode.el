@@ -277,7 +277,7 @@ the current line begins inside a multiline string and ends outside one, otherwis
   "Indent current line according to Jsonnet syntax."
   (interactive)
   (let ((calculated-indent (jsonnet-calculate-indent)))
-    (when calculated-indent
+    (when (not (eq calculated-indent (current-indentation)))
       (beginning-of-line)
       (delete-char (current-indentation))
       (indent-to calculated-indent))))
