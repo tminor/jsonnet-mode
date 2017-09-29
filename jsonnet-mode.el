@@ -1,11 +1,11 @@
-
-;;; jsonnet-mode.el -- Major mode for editing jsonnet files
+;;; jsonnet-mode.el --- Major mode for editing jsonnet files
 
 ;; Copyright (C) 2017 Nick Lanham
 
 ;; Author: Nick Lanham
 ;; URL: https://github.com/mgyucht/jsonnet-mode
-;; Version: 0.1
+;; Version: 0.0.1
+;; Keywords: languages
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -89,11 +89,11 @@
   "Syntax table for `jsonnet-mode'.")
 
 ;; Indent rules
-(defun debug-print (str)
+(defun jsonnet--debug-print (str)
   (when jsonnet-enable-debug-print
     (message str)))
 
-(defun find-current-block-comment ()
+(defun jsonnet--find-current-block-comment ()
   "Returns the position of the comment start if the point is inside of a block comment. Otherwise,
 returns nil."
   (let* ((previous-comment-start (save-excursion (re-search-backward "\\/\\*" nil t)))
@@ -103,32 +103,32 @@ returns nil."
                                        (> previous-comment-start previous-comment-end)))))
     (when is-in-block-comment previous-comment-start)))
 
-(defun line-matches-regex-p (regex)
+(defun jsonnet--line-matches-regex-p (regex)
   "Returns t if the current line matches the provided regular expression."
   (save-excursion
     (beginning-of-line)
     (integerp (re-search-forward regex (line-beginning-position 2) t))))
 
-(defun prev-line-ends-with-open-brace-or-open-bracket-or-colon-p ()
+(defun jsonnet--prev-line-ends-with-open-brace-or-open-bracket-or-colon-p ()
   "Returns t if the previous line ends with { [ or :, otherwise returns nil."
   (save-excursion
     (forward-line -1)
-    (line-matches-regex-p "[:{[]\s*$")))
+    (jsonnet--line-matches-regex-p "[:{[]\s*$")))
 
-(defun curr-line-ends-with-close-brace-or-close-bracket-p ()
+(defun jsonnet--curr-line-ends-with-close-brace-or-close-bracket-p ()
   "Returns t if the current line ends with } or } followed by comma, ;, { or [, otherwise returns
 nil."
-  (line-matches-regex-p "[]}]\s*\\(,\\(\s*[{[]\\)?\\|;\\)?\s*$"))
+  (jsonnet--line-matches-regex-p "[]}]\s*\\(,\\(\s*[{[]\\)?\\|;\\)?\s*$"))
 
-(defun prev-line-ends-with-comma-without-colon-or-brace-p ()
+(defun jsonnet--prev-line-ends-with-comma-without-colon-or-brace-p ()
   "Returns t if the previous line ends with a comma and does not contain a colon."
   (save-excursion
     (forward-line -1)
-    (and (line-matches-regex-p ",\s*$")
-         (not (line-matches-regex-p ":"))
-         (not (line-matches-regex-p "\\}")))))
+    (and (jsonnet--line-matches-regex-p ",\s*$")
+         (not (jsonnet--line-matches-regex-p ":"))
+         (not (jsonnet--line-matches-regex-p "\\}")))))
 
-(defun curr-line-inside-multiline-string-p ()
+(defun jsonnet--curr-line-inside-multiline-string-p ()
   "Returns t if the beginning of the line is inside of a multiline string, otherwise returns nil."
   (save-excursion
     (beginning-of-line)
@@ -137,7 +137,7 @@ nil."
         (setq num-triple-pipe (+ num-triple-pipe 1)))
       (eq 1 (% num-triple-pipe 2)))))
 
-(defun curr-line-has-multiline-string-p (opens-multiline-string)
+(defun jsonnet--curr-line-has-multiline-string-p (opens-multiline-string)
   "If opens-multiline-string is not nil, returns t if the current line begins outside a multiline
 string and ends inside one, otherwise returns nil. If opens-multiline-string is nil, returns t if
 the current line begins inside a multiline string and ends outside one, otherwise returns nil."
@@ -145,26 +145,26 @@ the current line begins inside a multiline string and ends outside one, otherwis
    (beginning-of-line)
    ;; The previous line opens a multiline string if it contains ||| and there are an odd number of
    ;; triple pipes before the current line.
-   (when (line-matches-regex-p "|||")
+   (when (jsonnet--line-matches-regex-p "|||")
      (forward-line)
      (eq (if opens-multiline-string t nil)
-         (curr-line-inside-multiline-string-p)))))
+         (jsonnet--curr-line-inside-multiline-string-p)))))
 
-(defun prev-line-opened-multiline-string-p ()
+(defun jsonnet--prev-line-opened-multiline-string-p ()
   "Returns t if the previous line opened a multiline string, otherwise returns nil."
   (save-excursion
     (forward-line -1)
-    (curr-line-has-multiline-string-p t)))
+    (jsonnet--curr-line-has-multiline-string-p t)))
 
-(defun prev-line-closed-multiline-string-p ()
+(defun jsonnet--prev-line-closed-multiline-string-p ()
   "Returns t if the previous line closed a multiline string, otherwise returns nil."
   (save-excursion
     (forward-line -1)
-    (curr-line-has-multiline-string-p nil)))
+    (jsonnet--curr-line-has-multiline-string-p nil)))
 
-(defun curr-line-closed-multiline-string-p ()
+(defun jsonnet-curr-line-closed-multiline-string-p ()
   "Returns t if the current line closed a multiline string, otherwise returns nil."
-  (curr-line-has-multiline-string-p nil))
+  (jsonnet--curr-line-has-multiline-string-p nil))
 
 (defun jsonnet-calculate-indent ()
   "Calculates the indent for the current line."
@@ -174,10 +174,10 @@ the current line begins inside a multiline string and ends outside one, otherwis
       ;; At the beginning of the file, the indentation should be 0.
       (if (bobp)
           0
-        (let ((current-block-comment (find-current-block-comment))
+        (let ((current-block-comment (jsonnet--find-current-block-comment))
               (previous-block-comment (save-excursion
                                         (beginning-of-line -1)
-                                        (find-current-block-comment))))
+                                        (jsonnet--find-current-block-comment))))
           (cond
            ;; NOTE: In all of these examples, the 'o' indicates the location of point after
            ;; indenting on that line. If the indent of the line depends on the contents of the line
@@ -189,7 +189,7 @@ the current line begins inside a multiline string and ends outside one, otherwis
            ;; |/*
            ;; | o
            (current-block-comment
-            (debug-print "Current line is in a block comment")
+            (jsonnet--debug-print "Current line is in a block comment")
             (goto-char current-block-comment)
             (+ 1 (current-column)))
 
@@ -198,9 +198,9 @@ the current line begins inside a multiline string and ends outside one, otherwis
            ;; e.g.
            ;; |  myField: |||
            ;; |    o
-           ((and (prev-line-opened-multiline-string-p)
-                 (not (curr-line-closed-multiline-string-p)))
-            (debug-print "Previous line opened multiline string not closed on current line")
+           ((and (jsonnet--prev-line-opened-multiline-string-p)
+                 (not (jsonnet-curr-line-closed-multiline-string-p)))
+            (jsonnet--debug-print "Previous line opened multiline string not closed on current line")
             (backward-to-indentation)
             (+ (current-column) tab-width))
 
@@ -210,8 +210,8 @@ the current line begins inside a multiline string and ends outside one, otherwis
            ;; |    some text
            ;; |  |||
            ;;    ^ proper indentation.
-           ((curr-line-closed-multiline-string-p)
-            (debug-print "Current line closed multiline string")
+           ((jsonnet-curr-line-closed-multiline-string-p)
+            (jsonnet--debug-print "Current line closed multiline string")
             (backward-to-indentation)
             (- (current-column) tab-width))
 
@@ -220,7 +220,7 @@ the current line begins inside a multiline string and ends outside one, otherwis
            ;; |  myField: |||
            ;; |    some text
            ;; |    o
-           ((curr-line-inside-multiline-string-p)
+           ((jsonnet--curr-line-inside-multiline-string-p)
             (backward-to-indentation)
             (current-column))
 
@@ -232,8 +232,8 @@ the current line begins inside a multiline string and ends outside one, otherwis
            ;; |}
            ;;  ^ proper indentation.
            ((and (curr-line-ends-with-close-brace-p)
-                 (prev-line-ends-with-comma-without-colon-or-brace-p))
-            (debug-print "Current line ended with close brace and last line ended with comma without colon")
+                 (jsonnet--prev-line-ends-with-comma-without-colon-or-brace-p))
+            (jsonnet--debug-print "Current line ended with close brace and last line ended with comma without colon")
             (backward-to-indentation)
             (- (current-column) (* 2 tab-width)))
 
@@ -248,8 +248,8 @@ the current line begins inside a multiline string and ends outside one, otherwis
            ;; or
            ;; |  myField: [
            ;; |    o
-           ((prev-line-ends-with-open-brace-or-open-bracket-or-colon-p)
-            (debug-print "Previous line ended with open brace or open bracket or colon")
+           ((jsonnet--prev-line-ends-with-open-brace-or-open-bracket-or-colon-p)
+            (jsonnet--debug-print "Previous line ended with open brace or open bracket or colon")
             (backward-to-indentation)
             (+ tab-width (current-column)))
 
@@ -262,8 +262,8 @@ the current line begins inside a multiline string and ends outside one, otherwis
            ;;  ^ proper indentation
            ;; Note that the comma on the third line should not affect the indentation on the fourth
            ;; line.
-           ((curr-line-ends-with-close-brace-or-close-bracket-p)
-            (debug-print "Current line ended with close brace")
+           ((jsonnet--curr-line-ends-with-close-brace-or-close-bracket-p)
+            (jsonnet--debug-print "Current line ended with close brace")
             (backward-to-indentation)
             (- (current-column) tab-width))
 
@@ -273,13 +273,13 @@ the current line begins inside a multiline string and ends outside one, otherwis
            ;; |  // a comment
            ;; |  o
            (previous-block-comment
-            (debug-print "Previous line is block comment")
+            (jsonnet--debug-print "Previous line is block comment")
             (goto-char previous-block-comment)
             (jsonnet-calculate-indent))
 
            ;; Otherwise, the indent is unchanged.
            (t
-            (debug-print "Indent is unchanged")
+            (jsonnet--debug-print "Indent is unchanged")
             (backward-to-indentation)
             (current-column)))))))
 
@@ -296,13 +296,13 @@ the current line begins inside a multiline string and ends outside one, otherwis
 (define-derived-mode jsonnet-mode prog-mode "Jsonnet"
   "jsonnet-mode is a major mode for editing .jsonnet files."
   :syntax-table jsonnet-mode-syntax-table
-  (setq-local font-lock-defaults '(jsonnet-font-lock-keywords ;; keywords
-                                   nil                        ;; keywords-only
-                                   nil                        ;; case-fold
-                                   nil                        ;; syntax-alist
-                                   nil                        ;; syntax-begin
-                                   ))
-  (setq-local indent-line-function 'jsonnet-indent))
+  (set (make-local-variable 'font-lock-defaults) '(jsonnet-font-lock-keywords ;; keywords
+                                                   nil                        ;; keywords-only
+                                                   nil                        ;; case-fold
+                                                   nil                        ;; syntax-alist
+                                                   nil                        ;; syntax-begin
+                                                   ))
+  (set (make-local-variable 'indent-line-function) 'jsonnet-indent))
 
 ;; Utilities for evaluating and jumping around Jsonnet code.
 (defun jsonnet-eval ()
@@ -324,7 +324,7 @@ the current line begins inside a multiline string and ends outside one, otherwis
                          display-buffer-at-bottom
                          display-buffer-pop-up-frame))))))
 
-(defun is-import-str (start)
+(defun jsonnet--is-import-str (start)
   "Return non-nil if, from START we find 'import '."
   (save-excursion
     (goto-char start)
@@ -335,7 +335,7 @@ the current line begins inside a multiline string and ends outside one, otherwis
   (interactive)
   (let ((parse (syntax-ppss (point))))
     (if (nth 3 parse)
-        (if (is-import-str (nth 2 parse))
+        (if (jsonnet--is-import-str (nth 2 parse))
             (let* ((end (save-excursion (re-search-forward "\"")))
                    (importfile (buffer-substring (+ (nth 8 parse) 1) (- end 1))))
               (find-file importfile))))))
@@ -353,7 +353,7 @@ the current line begins inside a multiline string and ends outside one, otherwis
         (goto-char identifier-def)
       (message (concat "Unable to find definition for " identifier ".")))))
 
-(defun get-identifier-at-location (&optional location)
+(defun jsonnet--get-identifier-at-location (&optional location)
   "Returns the identifier at the provided location if the location is over a Jsonnet identifier. If
 not provided, current point is used."
   (save-excursion
@@ -378,7 +378,7 @@ not provided, current point is used."
 (defun jsonnet-find-function-at-point ()
   "Jumps to the definition of the Jsonnet function at point."
   (interactive)
-  (let ((current-identifier (get-identifier-at-location)))
+  (let ((current-identifier (jsonnet--get-identifier-at-location)))
     (if current-identifier
         (jsonnet-find-definition-of-identifier-in-file current-identifier)
       (message "Point is not over a valid Jsonnet identifier."))))
@@ -389,7 +389,6 @@ not provided, current point is used."
   "Keymap for `jsonnet-mode'.")
 
 (define-key jsonnet-mode-map (kbd "M-.") 'jsonnet-visit-file)
-(define-key jsonnet-mode-map (kbd "C-c e") 'jsonnet-eval)
 
 (provide 'jsonnet-mode)
 ;;; jsonnet-mode.el ends here
