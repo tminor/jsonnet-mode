@@ -8,10 +8,10 @@ Provides Emacs font-lock, indentation, and some useful functions for the Jsonnet
 **Table of Contents**
 
 - [jsonnet-mode](#jsonnet-mode)
-    - [Dependencies](#dependencies)
+- [Dependencies](#dependencies)
 
 <!-- markdown-toc end -->
 
-## Dependencies
+# Dependencies
 
 The `jsonnet-eval` method depends on the `jsonnet` binary, which should be available on your `exec-path`. Install this on OSX with Homebrew by running `brew install jsonnet`.
