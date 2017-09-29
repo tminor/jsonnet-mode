@@ -44,6 +44,13 @@
   :type '(string)
   :group 'jsonnet)
 
+(defcustom jsonnet-enable-debug-print
+  t
+  "If non-nil, enables debug printing in jsonnet-mode functions."
+  :type '(boolean)
+  :group 'jsonnet)
+
+
 (defconst jsonnet-font-lock-keywords-1
   (list
    '("\\<\\(assert\\|e\\(?:lse\\|rror\\)\\|f\\(?:or\\|unction\\)\\|i\\(?:mport\\(?:str\\)?\\|[fn]\\)\\|local\\|s\\(?:elf\\|uper\\)\\|then\\)\\>" . font-lock-builtin-face)
@@ -82,6 +89,10 @@
   "Syntax table for `jsonnet-mode'.")
 
 ;; Indent rules
+(defun debug-print (str)
+  (when jsonnet-enable-debug-print
+    (print str)))
+
 (defun find-current-block-comment ()
   "Returns the position of the comment start if the point is inside of a block comment. Otherwise,
 returns nil."
@@ -172,7 +183,7 @@ the current line begins inside a multiline string and ends outside one, otherwis
            ;; |/*
            ;; | o
            (current-block-comment
-            (print "Current line is in a block comment")
+            (debug-print "Current line is in a block comment")
             (goto-char current-block-comment)
             (+ 1 (current-column)))
 
@@ -185,7 +196,7 @@ the current line begins inside a multiline string and ends outside one, otherwis
            ;;  ^ proper indentation.
            ((and (curr-line-ends-with-close-brace-p)
                  (prev-line-ends-with-comma-without-colon-or-brace-p))
-            (print "Current line ended with close brace and last line ended with comma without colon")
+            (debug-print "Current line ended with close brace and last line ended with comma without colon")
             (backward-to-indentation)
             (- (current-column) (* 2 tab-width)))
 
@@ -198,7 +209,7 @@ the current line begins inside a multiline string and ends outside one, otherwis
            ;; |  myField: {
            ;; |    o
            ((prev-line-ends-with-open-brace-or-colon-p)
-            (print "Previous line ended with open brace or colon")
+            (debug-print "Previous line ended with open brace or colon")
             (backward-to-indentation)
             (+ tab-width (current-column)))
 
@@ -220,7 +231,7 @@ the current line begins inside a multiline string and ends outside one, otherwis
            ((or (curr-line-ends-with-close-brace-p)
                 (and (prev-line-ends-with-comma-without-colon-or-brace-p)
                      (not (prev-line-closed-multiline-string-p))))
-            (print "Current line ended with close brace or last line ended with comma without colon")
+            (debug-print "Current line ended with close brace or last line ended with comma without colon")
             (backward-to-indentation)
             (- (current-column) tab-width))
 
@@ -230,7 +241,7 @@ the current line begins inside a multiline string and ends outside one, otherwis
            ;; |  // a comment
            ;; |  o
            (previous-block-comment
-            (print "Previous line is block comment")
+            (debug-print "Previous line is block comment")
             (goto-char previous-block-comment)
             (jsonnet-calculate-indent))
 
@@ -241,7 +252,7 @@ the current line begins inside a multiline string and ends outside one, otherwis
            ;; |    o
            ((and (prev-line-opened-multiline-string-p)
                  (not (curr-line-closed-multiline-string-p)))
-            (print "Previous line opened multiline string not closed on current line")
+            (debug-print "Previous line opened multiline string not closed on current line")
             (backward-to-indentation)
             (+ (current-column) tab-width))
 
@@ -252,13 +263,13 @@ the current line begins inside a multiline string and ends outside one, otherwis
            ;; |  |||
            ;;    ^ proper indentation.
            ((curr-line-closed-multiline-string-p)
-            (print "Current line closed multiline string")
+            (debug-print "Current line closed multiline string")
             (backward-to-indentation)
             (- (current-column) tab-width))
 
            ;; Otherwise, the indent is unchanged.
            (t
-            (print "Indent is unchanged")
+            (debug-print "Indent is unchanged")
             (backward-to-indentation)
             (current-column)))))))
 
