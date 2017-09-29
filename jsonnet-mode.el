@@ -44,28 +44,6 @@
   :type '(string)
   :group 'jsonnet)
 
-;; (defun jsonnet-find-multiline-string (limit)
-;;   "Search for multiline string up to LIMIT."
-;;   (interactive)
-;;   (message (format "starting at: %i" (point)))
-;;   (when (re-search-forward "|||" limit t)
-;;     ;; Save the start position
-;;     (let ((start (match-beginning 0)))
-;;       ;; Go to the last |.
-;;       (message (format "Start is: %i" start))
-;;       (goto-char (match-end 0))
-;;       (message (format "aftermove: %i" (point)))
-;;       ;; Look for the next |||
-;;       (let ((end (re-search-forward "|||" limit 'mv)))
-;;         (message (format "end: %i" end))
-;;         (message (format "md: %s" (match-data 't)))
-;;         (if end
-;;             (progn
-;;               (set-match-data (list start end (buffer-name)))
-;;               (message (format "md2: %s" (match-data 't)))
-;;               end)
-;;           (jsonnet-find-multiline-string limit))))))
-
 (defconst jsonnet-font-lock-keywords-1
   (list
    '("\\<\\(assert\\|e\\(?:lse\\|rror\\)\\|f\\(?:or\\|unction\\)\\|i\\(?:mport\\(?:str\\)?\\|[fn]\\)\\|local\\|s\\(?:elf\\|uper\\)\\|then\\)\\>" . font-lock-builtin-face)
@@ -73,8 +51,6 @@
    '("[[:space:]].+:" . font-lock-keyword-face)
    '("function \\(\\sw+\\)" . font-lock-function-name-face)
    '("\\([[:digit:]]+\\(?:\\.[[:digit:]]+\\)?\\)" . font-lock-constant-face)
-   ;;'("\\(|||\\(.\\|\n\\)*?|||\\)" . font-lock-string-face)
-   ;;'(jsonnet-find-multiline-string . font-lock-string-face)
    '("\\(?:std\\.\\(?:assertEqual\\|base64\\(?:Decode\\(?:Bytes\\)?\\)?\\|c\\(?:har\\|o\\(?:\\(?:depoi\\|u\\)nt\\)\\)\\|e\\(?:ndsWith\\|scapeString\\(?:Bash\\|Dollars\\|\\(?:Js\\|Pyth\\)on\\)\\|xtVar\\)\\|f\\(?:ilter\\(?:Map\\)?\\|lattenArrays\\|o\\(?:ld[lr]\\|rmat\\)\\)\\|join\\|l\\(?:ength\\|ines\\)\\|m\\(?:a\\(?:keArray\\|nifest\\(?:Ini\\|Python\\(?:Vars\\)?\\)\\|p\\)\\|d5\\|ergePatch\\)\\|object\\(?:Fields\\(?:All\\)?\\|Has\\(?:All\\)?\\)\\|parseInt\\|range\\|s\\(?:et\\(?:Diff\\|Inter\\|Union\\)?\\|ort\\|plit\\(?:Limit\\)?\\|t\\(?:artsWith\\|ringChars\\)\\|ubstr\\)\\|t\\(?:hisFile\\|oString\\|ype\\)\\|uniq\\)\\)" . font-lock-function-name-face)
    )
   "Minimal highlighting for jsonnet-mode.")
@@ -94,7 +70,7 @@
     ;; ", ', and ||| are quotations in Jsonnet.
     (modify-syntax-entry ?' "\"" table)
     (modify-syntax-entry ?\" "\"" table)
-    (modify-syntax-entry ?| "\"" table)
+    (modify-syntax-entry ?| "\"" table) ; This incidentally also causes triple-quoted strings to be correctly highlighted.
     ;; Our parenthesis, braces and brackets
     (modify-syntax-entry ?\( "()" table)
     (modify-syntax-entry ?\) ")(" table)
@@ -182,17 +158,32 @@ returns nil."
                                         (find-current-block-comment))))
           (cond
            ;; If we are in a block comment, the indent should match the * at the beginning of the comment.
+           ;; e.g.
+           ;; |/*
+           ;; | o
            (current-block-comment
             (print "Current line is in a block comment")
             (goto-char current-block-comment)
             (+ 1 (current-column)))
 
            ;; If the previous line ends with a : or {, or the line opens a multiline string, increase indentation.
+           ;; e.g.
+           ;; |  myField:
+           ;; |    o
+           ;; or
+           ;; |  myField: {
+           ;; |    o
            ((prev-line-ends-with-open-brace-or-colon-p)
             (print "Previous line ended with open brace or colon")
             (backward-to-indentation)
             (+ tab-width (current-column)))
 
+           ;; If the current line ends with a close brace and the previous line ends with a comma without colon or brace, doubly de-indent.
+           ;; e.g.
+           ;; |  myField:
+           ;; |    myValue,
+           ;; |}
+           ;;  ^ proper indentation.
            ((and (curr-line-ends-with-close-brace-p)
                  (prev-line-ends-with-comma-without-colon-or-brace-p))
             (print "Current line ended with close brace and last line ended with comma without colon")
@@ -200,7 +191,18 @@ returns nil."
             (- (current-column) (* 2 tab-width)))
 
            ;; If the current line ends with a }, decrease indentation.
+           ;; e.g.
+           ;; |  myField: {
+           ;; |    innerField: innerValue,
+           ;; |  },
+           ;; |}
+           ;;  ^ proper indentation
+           ;; Note that the comma on the third line should not affect the indentation on the fourth line.
            ;; If the previous line ends with a comma and does not have a : or |||, decrease indentation.
+           ;; e.g.
+           ;; |  myField:
+           ;; |    "myValue",
+           ;; |  o
            ((or (curr-line-ends-with-close-brace-p)
                 (and (prev-line-ends-with-comma-without-colon-or-brace-p)
                      (not (prev-line-closed-multiline-string-p))))
@@ -208,13 +210,20 @@ returns nil."
             (backward-to-indentation)
             (- (current-column) tab-width))
 
-           ;; If the previous line is a comment, skip backwards and recalculate the indent.
+           ;; If the previous line is a comment, use the indent of the comment.
+           ;; e.g.
+           ;; |  myField: "myValue",
+           ;; |  // a comment
+           ;; |  o
            (previous-block-comment
             (print "Previous line is block comment")
             (goto-char previous-block-comment)
             (jsonnet-calculate-indent))
 
            ;; If the previous line opened a multiline string, and the current line does not close a multiline string, increase indentation.
+           ;; e.g.
+           ;; |  myField: |||
+           ;; |    o
            ((and (prev-line-opened-multiline-string-p)
                  (not (curr-line-closed-multiline-string-p)))
             (print "Previous line opened multiline string not closed on current line")
@@ -222,6 +231,11 @@ returns nil."
             (+ (current-column) tab-width))
 
            ;; If the current line closed a multiline string, decrease indentation.
+           ;; e.g.
+           ;; |  myField: |||
+           ;; |    some text
+           ;; |  |||
+           ;;    ^ proper indentation.
            ((curr-line-closed-multiline-string-p)
             (print "Current line closed multiline string")
             (backward-to-indentation)
