@@ -26,8 +26,8 @@ local test_identifier_with_underscores_and_1_number = null;
   myVisibleOutput: testFunction("test1", "test2"),
   myHiddenOutput:: "hidden" + $.wubba,
   myField1:
-    "myValue1",
-    mySubObject: {
+    "myValue",
+  mySubObject: {
     a: 6,
     b: 45,
   },
