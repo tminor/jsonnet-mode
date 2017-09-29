@@ -25,3 +25,10 @@ There are two customizable parameters which you may configure in this mode:
 
 - `jsonnet-command` allows you to indicate which Jsonnet binary should be used to render a JSON document.
 - `jsonnet-enable-debug-print` will cause methods in jsonnet-mode to write messages to the status bar if enabled.
+
+# Known Issues
+
+Indentation support is not perfect. Here are a couple known problems with it:
+- When inside of a multiline string, we should not indent at all.
+- When the parameter list to a function is multiple lines long, we should indent 2x tab-width.
+- When the previous line has an unmatched [, we should indent tab-width, and if the current line has an unmatched ], we should deindent tab-width.
