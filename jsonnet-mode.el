@@ -49,7 +49,6 @@
    '("\\<\\(assert\\|e\\(?:lse\\|rror\\)\\|f\\(?:or\\|unction\\)\\|i\\(?:mport\\(?:str\\)?\\|[fn]\\)\\|local\\|s\\(?:elf\\|uper\\)\\|then\\)\\>" . font-lock-builtin-face)
    '("\\<\\(false\\|null\\|true\\)\\>" . font-lock-constant-face)
    '("[[:space:]].+:" . font-lock-keyword-face)
-   '("function \\(\\sw+\\)" . font-lock-function-name-face)
    '("\\([[:digit:]]+\\(?:\\.[[:digit:]]+\\)?\\)" . font-lock-constant-face)
    '("\\(?:std\\.\\(?:assertEqual\\|base64\\(?:Decode\\(?:Bytes\\)?\\)?\\|c\\(?:har\\|o\\(?:\\(?:depoi\\|u\\)nt\\)\\)\\|e\\(?:ndsWith\\|scapeString\\(?:Bash\\|Dollars\\|\\(?:Js\\|Pyth\\)on\\)\\|xtVar\\)\\|f\\(?:ilter\\(?:Map\\)?\\|lattenArrays\\|o\\(?:ld[lr]\\|rmat\\)\\)\\|join\\|l\\(?:ength\\|ines\\)\\|m\\(?:a\\(?:keArray\\|nifest\\(?:Ini\\|Python\\(?:Vars\\)?\\)\\|p\\)\\|d5\\|ergePatch\\)\\|object\\(?:Fields\\(?:All\\)?\\|Has\\(?:All\\)?\\)\\|parseInt\\|range\\|s\\(?:et\\(?:Diff\\|Inter\\|Union\\)?\\|ort\\|plit\\(?:Limit\\)?\\|t\\(?:artsWith\\|ringChars\\)\\|ubstr\\)\\|t\\(?:hisFile\\|oString\\|ype\\)\\|uniq\\)\\)" . font-lock-function-name-face)
    )
