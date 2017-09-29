@@ -18,3 +18,10 @@ The `jsonnet-eval` method depends on the `jsonnet` binary, which should be avail
 # Indentation
 
 The indentation rules are a set of rules which I put together based on my experience with Jsonnet. You can see them by looking at the implementation of `jsonnet-calculate-indent`.
+
+# Configuration
+
+There are two customizable parameters which you may configure in this mode:
+
+- `jsonnet-command` allows you to indicate which Jsonnet binary should be used to render a JSON document.
+- `jsonnet-enable-debug-print` will cause methods in jsonnet-mode to write messages to the status bar if enabled.
