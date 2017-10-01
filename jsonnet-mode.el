@@ -34,13 +34,13 @@
 
 ;;; Code:
 
-(defgroup jsonnet-mode '()
+(defgroup jsonnet '()
   "Major mode for editing Jsonnet files."
   :group 'languages)
 
 (defcustom jsonnet-command
   "jsonnet"
-  "Jsonnet command to run in eval-jsonnet, and for the flychecker."
+  "Jsonnet command to run in ‘jsonnet-eval’."
   :type '(string)
   :group 'jsonnet)
 
@@ -49,7 +49,6 @@
   "If non-nil, enables debug printing in ‘jsonnet-mode’ functions."
   :type '(boolean)
   :group 'jsonnet)
-
 
 (defconst jsonnet-font-lock-keywords-1
   (let ((builtin-regex (regexp-opt '("assert" "else" "error" "for" "function" "if" "import" "importstr" "in" "local" "self" "super" "then") 'words))
