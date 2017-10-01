@@ -378,10 +378,9 @@ If not provided, current point is used."
   (let ((current-identifier (jsonnet--get-identifier-at-location)))
     (if (not current-identifier)
         (message "Point is not over a valid Jsonnet identifier.")
-      (push-mark)
       (jsonnet-jump-to-definition current-identifier))))
 
-(define-key jsonnet-mode-map (kbd "M-.") 'jsonnet-jump)
+(define-key jsonnet-mode-map (kbd "C-c C-f") 'jsonnet-jump)
 
 (provide 'jsonnet-mode)
 ;;; jsonnet-mode.el ends here
