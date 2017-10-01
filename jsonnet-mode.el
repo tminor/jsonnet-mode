@@ -6,6 +6,7 @@
 ;; URL: https://github.com/mgyucht/jsonnet-mode
 ;; Package-Version: 0.0.1
 ;; Keywords: languages
+;; Package-Requires: ((emacs "24"))
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -26,17 +27,16 @@
 ;; To use it, place it somewhere in your load-path, and then add the
 ;; following to your init.el:
 ;; (load "jsonnet-mode")
-;; To autoload for .jsonnet files add:
-;; (add-to-list 'auto-mode-alist '("\\.jsonnet\\'" . jsonnet-mode))
-;;
-;; See jsonnet-flycheck.el for information on how to enable flychecking.
 ;;
 ;; This mode binds two keys:
-;;   'C-c e' evaluates the current buffer in jsonnet and put the output in an output buffer
-;;   'M-.' Checks if the point (cursor) is inside an import string (like: import "foo.jsonnet")
-;;         and jumps to that file if it is. You must be inside the actual string for this to work.
+;;   'C-c C-e' evaluates the current buffer in jsonnet and put the output in an output buffer
+;;   'M-.' Jumps to the definition of the identifier at point.
 
 ;;; Code:
+
+(defgroup jsonnet-mode '()
+  "Major mode for editing Jsonnet files."
+  :group 'languages)
 
 (defcustom jsonnet-command
   "jsonnet"
@@ -45,20 +45,25 @@
   :group 'jsonnet)
 
 (defcustom jsonnet-enable-debug-print
-  t
+  nil
   "If non-nil, enables debug printing in ‘jsonnet-mode’ functions."
   :type '(boolean)
   :group 'jsonnet)
 
 
 (defconst jsonnet-font-lock-keywords-1
-  (list
-   '("\\<\\(assert\\|e\\(?:lse\\|rror\\)\\|f\\(?:or\\|unction\\)\\|i\\(?:mport\\(?:str\\)?\\|[fn]\\)\\|local\\|s\\(?:elf\\|uper\\)\\|then\\)\\>" . font-lock-builtin-face)
-   '("\\<\\(false\\|null\\|true\\)\\>" . font-lock-constant-face)
-   '("[[:space:]].+:" . font-lock-keyword-face)
-   '("\\([[:digit:]]+\\(?:\\.[[:digit:]]+\\)?\\)" . font-lock-constant-face)
-   '("\\(?:std\\.\\(?:assertEqual\\|base64\\(?:Decode\\(?:Bytes\\)?\\)?\\|c\\(?:har\\|o\\(?:\\(?:depoi\\|u\\)nt\\)\\)\\|e\\(?:ndsWith\\|scapeString\\(?:Bash\\|Dollars\\|\\(?:Js\\|Pyth\\)on\\)\\|xtVar\\)\\|f\\(?:ilter\\(?:Map\\)?\\|lattenArrays\\|o\\(?:ld[lr]\\|rmat\\)\\)\\|join\\|l\\(?:ength\\|ines\\)\\|m\\(?:a\\(?:keArray\\|nifest\\(?:Ini\\|Python\\(?:Vars\\)?\\)\\|p\\)\\|d5\\|ergePatch\\)\\|object\\(?:Fields\\(?:All\\)?\\|Has\\(?:All\\)?\\)\\|parseInt\\|range\\|s\\(?:et\\(?:Diff\\|Inter\\|Union\\)?\\|ort\\|plit\\(?:Limit\\)?\\|t\\(?:artsWith\\|ringChars\\)\\|ubstr\\)\\|t\\(?:hisFile\\|oString\\|ype\\)\\|uniq\\)\\)" . font-lock-function-name-face)
-   )
+  (let ((builtin-regex (regexp-opt '("assert" "else" "error" "for" "function" "if" "import" "importstr" "in" "local" "self" "super" "then") 'words))
+        (constant-regex (regexp-opt '("false" "null" "true") 'words))
+        ;; All standard library functions (see https://jsonnet.org/docs/stdlib.html)
+        (standard-functions-regex (regexp-opt (mapcar (lambda (func-name) (concat "std." func-name))
+                                                '("abs" "acos" "asin" "assertEqual" "atan" "base64" "base64Decode" "base64DecodeBytes" "ceil" "char" "codepoint" "cos" "count" "endsWith" "escapeStringBash" "escapeStringDollars" "escapeStringJson" "escapeStringPython" "exp" "exponent" "extVar" "filter" "filterMap" "flattenArrays" "floor" "foldl" "foldr" "format" "join" "length" "lines" "makeArray" "manifestIni" "manifestPython" "manifestPythonVars" "mantissa" "map" "max" "md5" "mergePatch" "min" "mod" "objectFields" "objectFieldsAll" "objectHas" "objectHasAll" "parseInt" "pow" "prune" "range" "set" "setDiff" "setInter" "setUnion" "sin" "sort" "split" "splitLimit" "sqrt" "startsWith" "stringChars" "substr" "substr" "tan" "thisFile" "toString" "type" "uniq")))))
+    (list
+     `(,builtin-regex . font-lock-builtin-face)
+     `(,constant-regex . font-lock-constant-face)
+     '("[[:space:]].+:" . font-lock-keyword-face)
+     '("\\([[:digit:]]+\\(?:\\.[[:digit:]]+\\)?\\)" . font-lock-constant-face)
+     `(,standard-functions-regex . font-lock-function-name-face)
+     ))
   "Minimal highlighting for ‘jsonnet-mode’.")
 
 (defvar jsonnet-font-lock-keywords jsonnet-font-lock-keywords-1
@@ -305,7 +310,11 @@ the current line begins inside a multiline string and ends outside one, otherwis
                                                    ))
   (set (make-local-variable 'indent-line-function) 'jsonnet-indent))
 
+;;;###autoload
+(add-to-list 'auto-mode-alist (cons "\\.jsonnet\\'" 'jsonnet-mode))
+
 ;; Utilities for evaluating and jumping around Jsonnet code.
+;;;###autoload
 (defun jsonnet-eval ()
   "Run jsonnet with the path of the current file."
   (interactive)
@@ -325,23 +334,10 @@ the current line begins inside a multiline string and ends outside one, otherwis
                          display-buffer-at-bottom
                          display-buffer-pop-up-frame))))))
 
-(defun jsonnet--is-import-str (start)
-  "Return non-nil if, from START we find 'import '."
-  (save-excursion
-    (goto-char start)
-    (re-search-forward "import " (+ start 7) t)))
+(define-key jsonnet-mode-map (kbd "C-c C-e") 'jsonnet-eval)
 
-(defun jsonnet-visit-file ()
-  "If the point is on a jsonnet 'import' line, jump to that file."
-  (interactive)
-  (let ((parse (syntax-ppss (point))))
-    (if (nth 3 parse)
-        (if (jsonnet--is-import-str (nth 2 parse))
-            (let* ((end (save-excursion (re-search-forward "\"")))
-                   (importfile (buffer-substring (+ (nth 8 parse) 1) (- end 1))))
-              (find-file importfile))))))
-
-(defun jsonnet-find-definition-of-identifier-in-file (identifier)
+;;;###autoload
+(defun jsonnet-jump-to-definition (identifier)
   "Jump to the definition of the jsonnet function IDENTIFIER."
   (interactive "sFind definition with name: ")
   (let* ((local-def (concat "local\s+" identifier "[^[:alnum:]_]"))
@@ -376,20 +372,17 @@ If not provided, current point is used."
           (when (<= start curr-point end)
             (buffer-substring start end)))))))
 
-(defun jsonnet-find-function-at-point ()
-  "Jumps to the definition of the Jsonnet function at point."
-  (interactive)
+;;;###autoload
+(defun jsonnet-jump (point)
+  "Jumps to the definition of the Jsonnet expression at POINT."
+  (interactive "d")
   (let ((current-identifier (jsonnet--get-identifier-at-location)))
-    (if current-identifier
-        (jsonnet-find-definition-of-identifier-in-file current-identifier)
-      (message "Point is not over a valid Jsonnet identifier."))))
+    (if (not current-identifier)
+        (message "Point is not over a valid Jsonnet identifier.")
+      (push-mark)
+      (jsonnet-jump-to-definition current-identifier))))
 
-(defvar jsonnet-mode-map
-  (let ((map (make-sparse-keymap)))
-    map)
-  "Keymap for `jsonnet-mode'.")
-
-(define-key jsonnet-mode-map (kbd "M-.") 'jsonnet-visit-file)
+(define-key jsonnet-mode-map (kbd "M-.") 'jsonnet-jump)
 
 (provide 'jsonnet-mode)
 ;;; jsonnet-mode.el ends here
