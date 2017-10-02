@@ -37,8 +37,8 @@ local test_identifier_with_underscores_and_1_number = null;
     {
       key1: "value1",
     }, {
-      key2: "value2"
-    }
+      key2: "value2",
+    },
   ],
   myMultilineString: |||
     It's a string.

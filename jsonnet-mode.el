@@ -297,6 +297,11 @@ the current line begins inside a multiline string and ends outside one, otherwis
       (delete-char (current-indentation))
       (indent-to calculated-indent))))
 
+(defun jsonnet-format-buffer ()
+  "Reformat entire buffer using the Jsonnet format utility."
+  (interactive)
+  (call-process-region (point-min) (point-max) jsonnet-command t t nil "fmt" "-"))
+
 ;;;###autoload
 (define-derived-mode jsonnet-mode prog-mode "Jsonnet"
   "jsonnet-mode is a major mode for editing .jsonnet files."
