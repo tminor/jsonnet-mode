@@ -53,12 +53,14 @@
 (defconst jsonnet-font-lock-keywords-1
   (let ((builtin-regex (regexp-opt '("assert" "else" "error" "for" "function" "if" "import" "importstr" "in" "local" "self" "super" "then") 'words))
         (constant-regex (regexp-opt '("false" "null" "true") 'words))
+        (function-name-regex "local \\([a-zA-Z_][a-zA-Z0-9_]*\\)\\(([a-zA-Z0-9_, ]*)\\)? =")
         ;; All standard library functions (see https://jsonnet.org/docs/stdlib.html)
         (standard-functions-regex (regexp-opt (mapcar (lambda (func-name) (concat "std." func-name))
                                                 '("abs" "acos" "asin" "assertEqual" "atan" "base64" "base64Decode" "base64DecodeBytes" "ceil" "char" "codepoint" "cos" "count" "endsWith" "escapeStringBash" "escapeStringDollars" "escapeStringJson" "escapeStringPython" "exp" "exponent" "extVar" "filter" "filterMap" "flattenArrays" "floor" "foldl" "foldr" "format" "join" "length" "lines" "makeArray" "manifestIni" "manifestPython" "manifestPythonVars" "mantissa" "map" "max" "md5" "mergePatch" "min" "mod" "objectFields" "objectFieldsAll" "objectHas" "objectHasAll" "parseInt" "pow" "prune" "range" "set" "setDiff" "setInter" "setUnion" "sin" "sort" "split" "splitLimit" "sqrt" "startsWith" "stringChars" "substr" "substr" "tan" "thisFile" "toString" "type" "uniq")))))
     (list
      `(,builtin-regex . font-lock-builtin-face)
      `(,constant-regex . font-lock-constant-face)
+     `(,function-name-regex . (1 font-lock-function-name-face))
      '("[[:space:]].+:" . font-lock-keyword-face)
      '("\\([[:digit:]]+\\(?:\\.[[:digit:]]+\\)?\\)" . font-lock-constant-face)
      `(,standard-functions-regex . font-lock-function-name-face)
@@ -297,6 +299,7 @@ the current line begins inside a multiline string and ends outside one, otherwis
       (delete-char (current-indentation))
       (indent-to calculated-indent))))
 
+;;;###autoload
 (defun jsonnet-format-buffer ()
   "Reformat entire buffer using the Jsonnet format utility."
   (interactive)
