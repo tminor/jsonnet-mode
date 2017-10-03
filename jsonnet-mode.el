@@ -23,14 +23,16 @@
 
 ;;; Commentary:
 
-;; This package provides simple syntax highlighting for jsonnet files.
-;; To use it, place it somewhere in your load-path, and then add the
-;; following to your init.el:
+;; This package provides syntax highlighting, indenting, formatting, and utility
+;; methods for jsonnet files. To use it, place it somewhere in your load-path,
+;; and then add the following to your init.el:
 ;; (load "jsonnet-mode")
 ;;
-;; This mode binds two keys:
-;;   'C-c C-e' evaluates the current buffer in jsonnet and put the output in an output buffer
-;;   'M-.' Jumps to the definition of the identifier at point.
+;; This mode creates the following keybindings:
+;;   'C-c C-c' evaluates the current buffer in Jsonnet and put the output in an
+;;             output buffer
+;;   'C-c C-f' jumps to the definition of the identifier at point
+;;   'C-c C-r' reformats the entire buffer using Jsonnet's fmt utility
 
 ;;; Code:
 
@@ -50,10 +52,20 @@
   :type '(boolean)
   :group 'jsonnet)
 
+(defconst jsonnet--identifier-regexp
+  "[a-zA-Z_][a-zA-Z0-9_]*"
+  "Regular expression matching a Jsonnet identifier.")
+
+(defconst jsonnet--function-name-regexp
+  (concat "local \\(" jsonnet--identifier-regexp "\\)"
+          "\\(([a-zA-Z0-9_, ]*)\s*=\\|\s*=\s*function\\)"))
+
 (defconst jsonnet-font-lock-keywords-1
   (let ((builtin-regex (regexp-opt '("assert" "else" "error" "for" "function" "if" "import" "importstr" "in" "local" "self" "super" "then") 'words))
         (constant-regex (regexp-opt '("false" "null" "true") 'words))
-        (function-name-regex "local \\([a-zA-Z_][a-zA-Z0-9_]*\\)\\(([a-zA-Z0-9_, ]*)\\)? =")
+        (function-name-regex jsonnet--function-name-regexp)
+        ;; Any other local bindings are variables
+        (variable-name-regex (concat "local \\(" jsonnet--identifier-regexp "\\)\s+="))
         ;; All standard library functions (see https://jsonnet.org/docs/stdlib.html)
         (standard-functions-regex (regexp-opt (mapcar (lambda (func-name) (concat "std." func-name))
                                                 '("abs" "acos" "asin" "assertEqual" "atan" "base64" "base64Decode" "base64DecodeBytes" "ceil" "char" "codepoint" "cos" "count" "endsWith" "escapeStringBash" "escapeStringDollars" "escapeStringJson" "escapeStringPython" "exp" "exponent" "extVar" "filter" "filterMap" "flattenArrays" "floor" "foldl" "foldr" "format" "join" "length" "lines" "makeArray" "manifestIni" "manifestPython" "manifestPythonVars" "mantissa" "map" "max" "md5" "mergePatch" "min" "mod" "objectFields" "objectFieldsAll" "objectHas" "objectHasAll" "parseInt" "pow" "prune" "range" "set" "setDiff" "setInter" "setUnion" "sin" "sort" "split" "splitLimit" "sqrt" "startsWith" "stringChars" "substr" "substr" "tan" "thisFile" "toString" "type" "uniq")))))
@@ -61,6 +73,7 @@
      `(,builtin-regex . font-lock-builtin-face)
      `(,constant-regex . font-lock-constant-face)
      `(,function-name-regex . (1 font-lock-function-name-face))
+     `(,variable-name-regex . (1 font-lock-variable-name-face))
      '("[[:space:]].+:" . font-lock-keyword-face)
      '("\\([[:digit:]]+\\(?:\\.[[:digit:]]+\\)?\\)" . font-lock-constant-face)
      `(,standard-functions-regex . font-lock-function-name-face)
@@ -300,12 +313,6 @@ the current line begins inside a multiline string and ends outside one, otherwis
       (indent-to calculated-indent))))
 
 ;;;###autoload
-(defun jsonnet-format-buffer ()
-  "Reformat entire buffer using the Jsonnet format utility."
-  (interactive)
-  (call-process-region (point-min) (point-max) jsonnet-command t t nil "fmt" "-"))
-
-;;;###autoload
 (define-derived-mode jsonnet-mode prog-mode "Jsonnet"
   "jsonnet-mode is a major mode for editing .jsonnet files."
   :syntax-table jsonnet-mode-syntax-table
@@ -336,12 +343,12 @@ the current line begins inside a multiline string and ends outside one, otherwis
       (when (fboundp 'json-mode)
         (json-mode))
       (display-buffer (current-buffer)
-                      '((display-buffer-reuse-window
-                         display-buffer-pop-up-window
+                      '((display-buffer-pop-up-window
+                         display-buffer-reuse-window
                          display-buffer-at-bottom
                          display-buffer-pop-up-frame))))))
 
-(define-key jsonnet-mode-map (kbd "C-c C-e") 'jsonnet-eval)
+(define-key jsonnet-mode-map (kbd "C-c C-c") 'jsonnet-eval)
 
 ;;;###autoload
 (defun jsonnet-jump-to-definition (identifier)
@@ -389,6 +396,14 @@ If not provided, current point is used."
       (jsonnet-jump-to-definition current-identifier))))
 
 (define-key jsonnet-mode-map (kbd "C-c C-f") 'jsonnet-jump)
+
+;;;###autoload
+(defun jsonnet-reformat-buffer ()
+  "Reformat entire buffer using the Jsonnet format utility."
+  (interactive)
+  (call-process-region (point-min) (point-max) jsonnet-command t t nil "fmt" "-"))
+
+(define-key jsonnet-mode-map (kbd "C-c C-r") 'jsonnet-reformat-buffer)
 
 (provide 'jsonnet-mode)
 ;;; jsonnet-mode.el ends here
