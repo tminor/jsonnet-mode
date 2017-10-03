@@ -42,7 +42,7 @@
 
 (defcustom jsonnet-command
   "jsonnet"
-  "Jsonnet command to run in ‘jsonnet-eval’."
+  "Jsonnet command to run in ‘jsonnet-eval-buffer’."
   :type '(string)
   :group 'jsonnet)
 
@@ -329,7 +329,7 @@ the current line begins inside a multiline string and ends outside one, otherwis
 
 ;; Utilities for evaluating and jumping around Jsonnet code.
 ;;;###autoload
-(defun jsonnet-eval ()
+(defun jsonnet-eval-buffer ()
   "Run jsonnet with the path of the current file."
   (interactive)
   (let ((buffer-to-eval (buffer-file-name)))
@@ -348,7 +348,7 @@ the current line begins inside a multiline string and ends outside one, otherwis
                          display-buffer-at-bottom
                          display-buffer-pop-up-frame))))))
 
-(define-key jsonnet-mode-map (kbd "C-c C-c") 'jsonnet-eval)
+(define-key jsonnet-mode-map (kbd "C-c C-c") 'jsonnet-eval-buffer)
 
 ;;;###autoload
 (defun jsonnet-jump-to-definition (identifier)
