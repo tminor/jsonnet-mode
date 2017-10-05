@@ -122,186 +122,95 @@
                                        (> previous-comment-start previous-comment-end)))))
     (when is-in-block-comment previous-comment-start)))
 
+(defun jsonnet--find-current-multiline-string ()
+  "Return the position of the beginning of the current multiline string.
+
+If not inside of a multiline string, return nil."
+  (save-excursion
+    (beginning-of-line)
+    (let ((num-triple-pipe 0)
+          closest-triple-pipe)
+      (while (search-backward "|||" 0 t)
+        (setq num-triple-pipe (+ num-triple-pipe 1))
+        (when (not closest-triple-pipe)
+          (setq closest-triple-pipe (point))))
+      (when (eq 1 (% num-triple-pipe 2))
+        closest-triple-pipe))))
+
 (defun jsonnet--line-matches-regex-p (regex)
   "Return t if the current line matches REGEX."
   (save-excursion
     (beginning-of-line)
     (integerp (re-search-forward regex (line-beginning-position 2) t))))
 
-(defun jsonnet--prev-line-ends-with-open-brace-or-open-bracket-or-colon-p ()
-  "Return t if the previous line ends with { [ or :, otherwise return nil."
-  (save-excursion
-    (forward-line -1)
-    (jsonnet--line-matches-regex-p "[:{[]\s*$")))
+;; Experimental algorithm
+(defun jsonnet--indent-in-parens ()
+  "Compute the indent of the current line, given it is inside parentheses."
+  (if (jsonnet--line-matches-regex-p "^\s*)") 0 4))
 
-(defun jsonnet--curr-line-ends-with-close-brace-or-close-bracket-p ()
-  "Return t if the current line ends with } or } followed by comma, ;, { or [.
-Otherwise return nil."
-  (jsonnet--line-matches-regex-p "[]}]\s*\\(,\\(\s*[{[]\\)?\\|;\\)?\s*$"))
+(defun jsonnet--indent-in-braces ()
+  "Compute the indent of the current line, given it is inside braces."
+  (cond
+   ((jsonnet--line-matches-regex-p "^\s*}") 0)
+   ((save-excursion
+      (forward-line -1)
+      (jsonnet--line-matches-regex-p ":\s*$")) 4)
+   (t 2)))
 
-(defun jsonnet--prev-line-ends-with-comma-without-colon-or-brace-p ()
-  "Return t if the previous line ends with a comma and does not contain a colon."
-  (save-excursion
-    (forward-line -1)
-    (and (jsonnet--line-matches-regex-p ",\s*$")
-         (not (jsonnet--line-matches-regex-p ":"))
-         (not (jsonnet--line-matches-regex-p "\\}")))))
+(defun jsonnet--indent-in-brackets ()
+  "Compute the indent of the current line, given it is inside braces."
+  (if (jsonnet--line-matches-regex-p "^\s*]") 0 2))
 
-(defun jsonnet--curr-line-inside-multiline-string-p ()
-  "Return t if the beginning of the line is inside of a multiline string, otherwise return nil."
-  (save-excursion
-    (beginning-of-line)
-    (let ((num-triple-pipe 0))
-      (while (search-backward "|||" 0 t)
-        (setq num-triple-pipe (+ num-triple-pipe 1)))
-      (eq 1 (% num-triple-pipe 2)))))
-
-(defun jsonnet--curr-line-has-multiline-string-p (opens-multiline-string)
-  "Return t if the current line is part of a multiline string.
-If OPENS-MULTILINE-STRING is not nil, return t if the current line begins outside a multiline
-string and ends inside one, otherwise return nil. If OPEN-MULTILINE-STRING is nil, return t if
-the current line begins inside a multiline string and ends outside one, otherwise return nil."
- (save-excursion
-   (beginning-of-line)
-   ;; The previous line opens a multiline string if it contains ||| and there are an odd number of
-   ;; triple pipes before the current line.
-   (when (jsonnet--line-matches-regex-p "|||")
-     (forward-line)
-     (eq (if opens-multiline-string t nil)
-         (jsonnet--curr-line-inside-multiline-string-p)))))
-
-(defun jsonnet--prev-line-opened-multiline-string-p ()
-  "Return t if the previous line opened a multiline string, otherwise return nil."
-  (save-excursion
-    (forward-line -1)
-    (jsonnet--curr-line-has-multiline-string-p t)))
-
-(defun jsonnet--prev-line-closed-multiline-string-p ()
-  "Return t if the previous line closed a multiline string, otherwise return nil."
-  (save-excursion
-    (forward-line -1)
-    (jsonnet--curr-line-has-multiline-string-p nil)))
-
-(defun jsonnet-curr-line-closed-multiline-string-p ()
-  "Return t if the current line closed a multiline string, otherwise return nil."
-  (jsonnet--curr-line-has-multiline-string-p nil))
+(defun jsonnet--indent-toplevel ()
+  "Compute the indent of the current line, given it is not inside any delimiter."
+  0)
 
 (defun jsonnet-calculate-indent ()
-  "Calculates the indent for the current line."
+  "Compute the indent of the current line."
   (interactive)
   (save-excursion
-      (beginning-of-line)
-      ;; At the beginning of the file, the indentation should be 0.
-      (if (bobp)
-          0
-        (let ((current-block-comment (jsonnet--find-current-block-comment))
-              (previous-block-comment (save-excursion
-                                        (beginning-of-line -1)
-                                        (jsonnet--find-current-block-comment))))
-          (cond
-           ;; NOTE: In all of these examples, the 'o' indicates the location of point after
-           ;; indenting on that line. If the indent of the line depends on the contents of the line
-           ;; itself, a '^' is used to indicate the proper indentation for the last line.
-           ;;
-           ;; If we are in a block comment, the indent should match the * at the beginning of the
-           ;; comment.
-           ;; e.g.
-           ;; |/*
-           ;; | o
-           (current-block-comment
-            (jsonnet--debug-print "Current line is in a block comment")
-            (goto-char current-block-comment)
-            (+ 1 (current-column)))
-
-           ;; If the previous line opened a multiline string, and the current line does not close a
-           ;; multiline string, increase indentation.
-           ;; e.g.
-           ;; |  myField: |||
-           ;; |    o
-           ((and (jsonnet--prev-line-opened-multiline-string-p)
-                 (not (jsonnet-curr-line-closed-multiline-string-p)))
-            (jsonnet--debug-print "Previous line opened multiline string not closed on current line")
-            (backward-to-indentation)
-            (+ (current-column) tab-width))
-
-           ;; If the current line closed a multiline string, decrease indentation.
-           ;; e.g.
-           ;; |  myField: |||
-           ;; |    some text
-           ;; |  |||
-           ;;    ^ proper indentation.
-           ((jsonnet-curr-line-closed-multiline-string-p)
-            (jsonnet--debug-print "Current line closed multiline string")
-            (backward-to-indentation)
-            (- (current-column) tab-width))
-
-           ;; If the current line is inside of a multiline string, do nothing.
-           ;; e.g.
-           ;; |  myField: |||
-           ;; |    some text
-           ;; |    o
-           ((jsonnet--curr-line-inside-multiline-string-p)
-            (backward-to-indentation)
-            (current-column))
-
-           ;; If the current line ends with a close brace and the previous line ends with a comma
-           ;; without colon or brace, doubly de-indent.
-           ;; e.g.
-           ;; |  myField:
-           ;; |    myValue,
-           ;; |}
-           ;;  ^ proper indentation.
-           ((and (jsonnet--curr-line-ends-with-close-brace-or-close-bracket-p)
-                 (jsonnet--prev-line-ends-with-comma-without-colon-or-brace-p))
-            (jsonnet--debug-print "Current line ended with close brace and last line ended with comma without colon")
-            (backward-to-indentation)
-            (- (current-column) (* 2 tab-width)))
-
-           ;; If the previous line ends with a : or {, or the line opens a multiline string,
-           ;; increase indentation.
-           ;; e.g.
-           ;; |  myField:
-           ;; |    o
-           ;; or
-           ;; |  myField: {
-           ;; |    o
-           ;; or
-           ;; |  myField: [
-           ;; |    o
-           ((jsonnet--prev-line-ends-with-open-brace-or-open-bracket-or-colon-p)
-            (jsonnet--debug-print "Previous line ended with open brace or open bracket or colon")
-            (backward-to-indentation)
-            (+ tab-width (current-column)))
-
-           ;; If the current line ends with a }, decrease indentation.
-           ;; e.g.
-           ;; |  myField: {
-           ;; |    innerField: innerValue,
-           ;; |  },
-           ;; |}
-           ;;  ^ proper indentation
-           ;; Note that the comma on the third line should not affect the indentation on the fourth
-           ;; line.
-           ((jsonnet--curr-line-ends-with-close-brace-or-close-bracket-p)
-            (jsonnet--debug-print "Current line ended with close brace")
-            (backward-to-indentation)
-            (- (current-column) tab-width))
-
-           ;; If the previous line is a comment, use the indent of the comment.
-           ;; e.g.
-           ;; |  myField: "myValue",
-           ;; |  // a comment
-           ;; |  o
-           (previous-block-comment
-            (jsonnet--debug-print "Previous line is block comment")
-            (goto-char previous-block-comment)
-            (jsonnet-calculate-indent))
-
-           ;; Otherwise, the indent is unchanged.
-           (t
-            (jsonnet--debug-print "Indent is unchanged")
-            (backward-to-indentation)
-            (current-column)))))))
+    (beginning-of-line)
+    (cond
+     ;; At the beginning of the buffer, the indent should be 0.
+     ((bobp) 0)
+     ;; NOTE: In all of these examples, the 'o' indicates the location of point after
+     ;; indenting on that line. If the indent of the line depends on the contents of the line
+     ;; itself, a '^' is used to indicate the proper indentation for the last line.
+     ;;
+     ;; If we are in a block comment, the indent should match the * at the beginning of the
+     ;; comment.
+     ;; e.g.
+     ;; |/*
+     ;; | o
+     ((jsonnet--find-current-block-comment)
+      (goto-char (jsonnet--find-current-block-comment))
+      (+ 1 (current-column)))
+     ;; If we are inside of a multiline string, the indent should be 2 greater than the beginning
+     ;; of the multiline string. However, if the current line ends a multiline string, then the
+     ;; indent should match the beginning of the multiline string.
+     ((jsonnet--find-current-multiline-string)
+      (let ((multiline-string-ends (jsonnet--line-matches-regex-p "^\s*|||")))
+        (goto-char (jsonnet--find-current-multiline-string))
+        (+ (current-indentation) (if multiline-string-ends 0 2))))
+     ;; Otherwise, indent according to the kind of delimiter we are nested in.
+     (t
+      (let ((state (syntax-ppss)))
+        (if (not (eq 0 (car state)))
+            (let* ((delimiter-pos (cadr state))
+                   (delimiter (when (not (eq 0 (car state)))
+                                (char-after delimiter-pos)))
+                   (current-indent (save-excursion
+                                     (goto-char (cadr state))
+                                     (current-indentation)))
+                   (additional-indent (pcase delimiter
+                                        (`?\( (jsonnet--indent-in-parens))
+                                        (`?\{ (jsonnet--indent-in-braces))
+                                        (`?\[ (jsonnet--indent-in-brackets))
+                                        (_    (error (format "Unrecognized delimiter: %s" delimiter)))))
+                   (new-indent (+ current-indent additional-indent)))
+              (jsonnet--debug-print (format "Current delimiter: %s, position: %d" delimiter delimiter-pos))
+              new-indent)
+          (jsonnet--indent-toplevel)))))))
 
 (defun jsonnet-indent ()
   "Indent current line according to Jsonnet syntax."
@@ -358,8 +267,8 @@ the current line begins inside a multiline string and ends outside one, otherwis
          (inner-def (concat identifier "\\:+"))
          (full-regex (concat "\\(" local-def "\\|" inner-def "\\)"))
          (identifier-def (save-excursion
-                         (goto-char (point-max))
-                         (re-search-backward full-regex nil t))))
+                           (goto-char (point-max))
+                           (re-search-backward full-regex nil t))))
     (if identifier-def
         (goto-char identifier-def)
       (message (concat "Unable to find definition for " identifier ".")))))

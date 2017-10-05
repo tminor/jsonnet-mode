@@ -14,6 +14,16 @@ local testFunction3 = function(a, b, c) {
     "my value",
 };
 
+local testFunctionWithManyArguments = function(
+    a=null,
+    b=1,
+    c="test",
+) = {
+  a: a,
+  b: b,
+  c: c,
+};
+
 local testIdentifierWithNoNumbers = null;
 local testIdentifierWith1Number = null;
 local test_identifier_with_underscores = null;
