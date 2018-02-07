@@ -235,6 +235,7 @@ If not inside of a multiline string, return nil."
 
 ;;;###autoload
 (add-to-list 'auto-mode-alist (cons "\\.jsonnet\\'" 'jsonnet-mode))
+(add-to-list 'auto-mode-alist (cons "\\.libsonnet\\'" 'jsonnet-mode))
 
 ;; Utilities for evaluating and jumping around Jsonnet code.
 ;;;###autoload
