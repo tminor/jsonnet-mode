@@ -46,6 +46,12 @@
   :type '(string)
   :group 'jsonnet)
 
+(defcustom jsonnet-lib-dirs
+  nil
+  "Sequence of Jsonnet library search directories, with later entries shadowing earlier entries."
+  :type '(repeat directory)
+  :group 'jsonnet)
+
 (defcustom jsonnet-enable-debug-print
   nil
   "If non-nil, enables debug printing in ‘jsonnet-mode’ functions."
@@ -249,7 +255,10 @@ If not inside of a multiline string, return nil."
         (save-buffer)))
     (with-current-buffer (get-buffer-create "*jsonnet output*")
       (erase-buffer)
-      (call-process jsonnet-command nil t nil buffer-to-eval)
+      (let ((args (cl-loop for dir in jsonnet-lib-dirs
+                           appending (list "-J" dir) into dirs
+                           finally return (append dirs (list buffer-to-eval)))))
+        (apply #'call-process jsonnet-command nil t nil args))
       (when (fboundp 'json-mode)
         (json-mode))
       (display-buffer (current-buffer)
