@@ -248,16 +248,17 @@ If not inside of a multiline string, return nil."
 (defun jsonnet-eval-buffer ()
   "Run jsonnet with the path of the current file."
   (interactive)
-  (let ((buffer-to-eval (buffer-file-name)))
+  (let ((file-to-eval (buffer-file-name))
+        (search-dirs jsonnet-lib-dirs))
     (when (buffer-modified-p)
       (when (y-or-n-p
-             (format "Save file %s? " buffer-to-eval))
+             (format "Save file %s? " file-to-eval))
         (save-buffer)))
     (with-current-buffer (get-buffer-create "*jsonnet output*")
       (erase-buffer)
-      (let ((args (cl-loop for dir in jsonnet-lib-dirs
+      (let ((args (cl-loop for dir in search-dirs
                            appending (list "-J" dir) into dirs
-                           finally return (append dirs (list buffer-to-eval)))))
+                           finally return (append dirs (list file-to-eval)))))
         (apply #'call-process jsonnet-command nil t nil args))
       (when (fboundp 'json-mode)
         (json-mode))
