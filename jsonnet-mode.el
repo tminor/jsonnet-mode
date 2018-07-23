@@ -256,9 +256,10 @@ If not inside of a multiline string, return nil."
         (save-buffer)))
     (with-current-buffer (get-buffer-create "*jsonnet output*")
       (erase-buffer)
-      (let ((args (cl-loop for dir in search-dirs
-                           appending (list "-J" dir) into dirs
-                           finally return (append dirs (list file-to-eval)))))
+      (let ((args (nconc (cl-loop for dir in search-dirs
+                                  collect "-J"
+                                  collect dir)
+                         (list file-to-eval))))
         (apply #'call-process jsonnet-command nil t nil args))
       (when (fboundp 'json-mode)
         (json-mode))
