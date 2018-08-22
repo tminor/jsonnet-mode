@@ -46,7 +46,7 @@
   :type '(string)
   :group 'jsonnet)
 
-(defcustom jsonnet-lib-dirs
+(defcustom jsonnet-library-search-directories
   nil
   "Sequence of Jsonnet library search directories, with later entries shadowing earlier entries."
   :type '(repeat directory)
@@ -249,7 +249,7 @@ If not inside of a multiline string, return nil."
   "Run jsonnet with the path of the current file."
   (interactive)
   (let ((file-to-eval (buffer-file-name))
-        (search-dirs jsonnet-lib-dirs))
+        (search-dirs jsonnet-library-search-directories))
     (when (buffer-modified-p)
       (when (y-or-n-p
              (format "Save file %s? " file-to-eval))
