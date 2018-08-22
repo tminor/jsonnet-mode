@@ -52,7 +52,9 @@ definition of a given identifier.
 
 # Configuration
 
-There are two customizable parameters which you may configure in this mode:
+There are three customizable parameters that you may configure in this mode:
 
 - `jsonnet-command` allows you to indicate which Jsonnet binary should be used to render a JSON document.
+- `jsonnet-library-search-directories` specifies the sequence of Jsonnet library search directories use during evaluation.  
+  Relative paths in this sequence must resolve from the directory of the buffer being evaluated.
 - `jsonnet-enable-debug-print` will cause methods in jsonnet-mode to write messages to the status bar if enabled.
