@@ -89,6 +89,62 @@
 (defvar jsonnet-font-lock-keywords jsonnet-font-lock-keywords-1
   "Default highlighting expressions for jsonnet mode.")
 
+(defconst jsonnet-multiline-string-syntax (string-to-syntax "\""))
+
+(defun jsonnet--font-lock-open-multiline-string (start)
+  "Set syntax of jsonnet multiline |||...||| opening delimiter.
+START is the position of |||.
+Moves point to the first character following open delimiter."
+  (let* ((ppss (save-excursion (syntax-ppss start)))
+         (in-string (nth 3 ppss))
+         (in-comment (nth 4 ppss)))
+    (unless (or in-string in-comment)
+      (let ((prefix (jsonnet--find-multiline-string-prefix start)))
+        (put-text-property start (+ 3 start) 'jsonnet-multiline-string-prefix prefix)
+        ;; tell jit-lock to refontify if this block is modified
+        (put-text-property start (point) 'syntax-multiline t)
+        (goto-char (+ 3 start))
+        jsonnet-multiline-string-syntax))))
+
+(defun jsonnet--find-multiline-string-prefix (start)
+  "Find prefix for multiline |||...||| string starting at START.
+Moves point to first non-prefix character."
+  (goto-char start)
+  (end-of-line)
+  (while (and (eolp) (not (eobp))) ; skip blank lines
+    (goto-char (1+ (point)))
+    (re-search-forward "^[[:space:]]*" nil 'move))
+  (let ((prefix (match-string 0)))
+    (if (looking-at "|\\{3\\}")
+        ;; Found end delimiter already (multline string that only
+        ;; contains blank lines).  Make up a prefix that won't exclude
+        ;; end delimiter.
+        (concat prefix " ")
+      prefix)))
+
+(defun jsonnet--font-lock-close-multiline-string (prefix start)
+  "Set syntax of jsonnet multiline |||...||| closing delimiter.
+START is the position of |||.  PREFIX is the (whitespace) preceding |||."
+  (let* ((ppss (syntax-ppss))
+         (in-string (nth 3 ppss))
+         (string-start (nth 8 ppss)))
+    (when in-string
+      (let ((ignored-prefix (get-text-property string-start 'jsonnet-multiline-string-prefix)))
+        (if (and ignored-prefix
+                 (not (string-prefix-p ignored-prefix prefix)))
+            jsonnet-multiline-string-syntax)))))
+
+(defun jsonnet--syntax-propertize-function (start end)
+  (goto-char start)
+  (funcall
+   (syntax-propertize-rules
+    ("\\(|\\{3\\}\\)\n"
+     (1 (jsonnet--font-lock-open-multiline-string (match-beginning 1))))
+    ("^\\([[:space:]]*\\)\\(|\\{3\\}\\)"
+     (2 (jsonnet--font-lock-close-multiline-string
+         (match-string 1) (match-beginning 2)))))
+   (point) end))
+
 ;; Syntax table
 (defconst jsonnet-mode-syntax-table
   (let ((table (make-syntax-table)))
@@ -99,10 +155,9 @@
     (modify-syntax-entry ?# "<" table)
     (modify-syntax-entry ?\n ">" table)
     ;; ", ', and ||| are quotations in Jsonnet.
+    ;; ||| is handled by jsonnet--syntax-propertize-function
     (modify-syntax-entry ?' "\"" table)
     (modify-syntax-entry ?\" "\"" table)
-    (modify-syntax-entry ?| "\"" table) ; This incidentally also causes triple-quoted strings to be
-                                        ; correctly highlighted.
     ;; Our parenthesis, braces and brackets
     (modify-syntax-entry ?\( "()" table)
     (modify-syntax-entry ?\) ")(" table)
@@ -132,16 +187,11 @@
   "Return the position of the beginning of the current multiline string.
 
 If not inside of a multiline string, return nil."
-  (save-excursion
-    (beginning-of-line)
-    (let ((num-triple-pipe 0)
-          closest-triple-pipe)
-      (while (search-backward "|||" 0 t)
-        (setq num-triple-pipe (+ num-triple-pipe 1))
-        (when (not closest-triple-pipe)
-          (setq closest-triple-pipe (point))))
-      (when (eq 1 (% num-triple-pipe 2))
-        closest-triple-pipe))))
+  (let* ((ppss (syntax-ppss))
+         (in-string (nth 3 ppss))
+         (start (nth 8 ppss)))
+    (when in-string
+      start)))
 
 (defun jsonnet--line-matches-regex-p (regex)
   "Return t if the current line matches REGEX."
@@ -237,7 +287,10 @@ If not inside of a multiline string, return nil."
                                                    nil                        ;; syntax-alist
                                                    nil                        ;; syntax-begin
                                                    ))
-  (set (make-local-variable 'indent-line-function) 'jsonnet-indent))
+  (set (make-local-variable 'indent-line-function) 'jsonnet-indent)
+  (setq-local syntax-propertize-function #'jsonnet--syntax-propertize-function)
+  (add-hook 'syntax-propertize-extend-region-functions
+            #'syntax-propertize-multiline 'append 'local))
 
 ;;;###autoload
 (add-to-list 'auto-mode-alist (cons "\\.jsonnet\\'" 'jsonnet-mode))
