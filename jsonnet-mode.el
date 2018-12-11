@@ -152,7 +152,7 @@ If not inside of a multiline string, return nil."
 ;; Experimental algorithm
 (defun jsonnet--indent-in-parens ()
   "Compute the indent of the current line, given it is inside parentheses."
-  (if (jsonnet--line-matches-regex-p "^\s*)") 0 4))
+  (if (jsonnet--line-matches-regex-p "^\s*)") 0 2))
 
 (defun jsonnet--indent-in-braces ()
   "Compute the indent of the current line, given it is inside braces."
