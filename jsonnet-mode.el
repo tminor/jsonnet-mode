@@ -36,6 +36,8 @@
 
 ;;; Code:
 
+(require 'subr-x)
+
 (defgroup jsonnet '()
   "Major mode for editing Jsonnet files."
   :group 'languages)
@@ -308,21 +310,32 @@ If not inside of a multiline string, return nil."
 (defun jsonnet-eval-buffer ()
   "Run jsonnet with the path of the current file."
   (interactive)
-  (let ((file-to-eval (buffer-file-name))
-        (search-dirs jsonnet-library-search-directories))
-    (when (buffer-modified-p)
-      (when (y-or-n-p
-             (format "Save file %s? " file-to-eval))
-        (save-buffer)))
-    (with-current-buffer (get-buffer-create "*jsonnet output*")
+  (let ((file-to-eval (file-truename (buffer-file-name)))
+        (search-dirs jsonnet-library-search-directories)
+        (output-buffer-name "*jsonnet output*"))
+    (save-some-buffers (not compilation-ask-about-save)
+                       (lexical-let ((directories (cons (file-name-directory file-to-eval)
+                                                        search-dirs)))
+                         (lambda ()
+                           (member (file-name-directory (file-truename (buffer-file-name)))
+                                   directories))))
+    (when-let ((output-window (get-buffer-window output-buffer-name t)))
+      (quit-window nil output-window)
+      (redisplay))
+    (with-current-buffer (get-buffer-create output-buffer-name)
+      (setq buffer-read-only nil)
       (erase-buffer)
       (let ((args (nconc (cl-loop for dir in search-dirs
                                   collect "-J"
                                   collect dir)
                          (list file-to-eval))))
-        (apply #'call-process jsonnet-command nil t nil args))
-      (when (fboundp 'json-mode)
-        (json-mode))
+        (if (zerop (apply #'call-process jsonnet-command nil t nil args))
+            (progn
+              (when (fboundp 'json-mode)
+                (json-mode))
+              (view-mode))
+          (compilation-mode nil)))
+      (goto-char (point-min))
       (display-buffer (current-buffer)
                       '((display-buffer-pop-up-window
                          display-buffer-reuse-window
@@ -342,7 +355,9 @@ If not inside of a multiline string, return nil."
                            (goto-char (point-max))
                            (re-search-backward full-regex nil t))))
     (if identifier-def
-        (goto-char identifier-def)
+        (progn
+          (push-mark)
+          (goto-char identifier-def))
       (message (concat "Unable to find definition for " identifier ".")))))
 
 (defun jsonnet--get-identifier-at-location (&optional location)
@@ -382,7 +397,59 @@ If not provided, current point is used."
 (defun jsonnet-reformat-buffer ()
   "Reformat entire buffer using the Jsonnet format utility."
   (interactive)
-  (call-process-region (point-min) (point-max) jsonnet-fmt-command t t nil "-"))
+  (let ((point (point))
+        (file-name (buffer-file-name))
+        (stdout-buffer (get-buffer-create "*jsonnetfmt stdout*"))
+        (stderr-buffer-name "*jsonnetfmt stderr*")
+        (stderr-file (make-temp-file "jsonnetfmt")))
+    (when-let ((stderr-window (get-buffer-window stderr-buffer-name t)))
+      (quit-window nil stderr-window))
+    (unwind-protect
+        (let* ((only-test buffer-read-only)
+               (exit-code (apply #'call-process-region nil nil jsonnet-fmt-command
+                                 nil (list stdout-buffer stderr-file) nil
+                                 (append (when only-test '("--test"))
+                                         '("-")))))
+          (cond ((zerop exit-code)
+                 (progn
+                   (if (or only-test
+                           (zerop (compare-buffer-substrings nil nil nil stdout-buffer nil nil)))
+                       (message "No format change necessary.")
+                     (erase-buffer)
+                     (insert-buffer-substring stdout-buffer)
+                     (goto-char point))
+                   (kill-buffer stdout-buffer)))
+                ((and only-test (= exit-code 2))
+                 (message "Format change is necessary, but buffer is read-only."))
+                (t (with-current-buffer (get-buffer-create stderr-buffer-name)
+                     (setq buffer-read-only nil)
+                     (insert-file-contents stderr-file t nil nil t)
+                     (goto-char (point-min))
+                     (when file-name
+                       (while (search-forward "<stdin>" nil t)
+                         (replace-match file-name)))
+                     (set-buffer-modified-p nil)
+                     (compilation-mode nil)
+                     (display-buffer (current-buffer)
+                                     '((display-buffer-reuse-window
+                                        display-buffer-at-bottom
+                                        display-buffer-pop-up-frame)
+                                       .
+                                       ((window-height . fit-window-to-buffer))))))))
+      (delete-file stderr-file))))
+
+(when (and (boundp 'compilation-error-regexp-alist)
+           (boundp 'compilation-error-regexp-alist-alist))
+  (add-to-list 'compilation-error-regexp-alist 'jsonnet-eval-line)
+  (add-to-list 'compilation-error-regexp-alist-alist
+               '(jsonnet-eval-line .
+                                   ("^\\(?:[^:]+:\\)?\\s-+\\([^:\n]+\\):\\([0-9]+\\):\\([0-9]+\\)\\(?:-\\([0-9]+\\)\\)?:?\\s-.*$"
+                                    1 2 (3 . 4) nil 1)) t)
+  (add-to-list 'compilation-error-regexp-alist 'jsonnet-eval-lines)
+  (add-to-list 'compilation-error-regexp-alist-alist
+               '(jsonnet-eval-lines .
+                                    ("^\\(?:[^:]+:\\)?\\s-+\\([^:\n]+\\):(\\([0-9]+\\):\\([0-9]+\\))-(\\([0-9]+\\):\\([0-9]+\\))\\s-.*$"
+                                     1 (2 . 4) (3 . 5) nil 1)) t))
 
 (define-key jsonnet-mode-map (kbd "C-c C-r") 'jsonnet-reformat-buffer)
 
