@@ -322,7 +322,12 @@ If not provided, current point is used."
 (defun jsonnet-reformat-buffer ()
   "Reformat entire buffer using the Jsonnet format utility."
   (interactive)
-  (call-process-region (point-min) (point-max) jsonnet-command t t nil "fmt" "-"))
+  (let ((current-window (selected-window))
+        (current-window-start (window-start))
+        (current-point (point)))
+    (call-process-region (point-min) (point-max) jsonnet-command t t nil "fmt" "-")
+    (set-window-start current-window current-window-start)
+    (goto-char current-point)))
 
 (define-key jsonnet-mode-map (kbd "C-c C-r") 'jsonnet-reformat-buffer)
 
