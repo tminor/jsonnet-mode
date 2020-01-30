@@ -46,6 +46,12 @@
   :type '(string)
   :group 'jsonnet)
 
+(defcustom jsonnet-fmt-command
+  "jsonnetfmt"
+  "Jsonnet format command."
+  :type '(string)
+  :group 'jsonnet)
+
 (defcustom jsonnet-library-search-directories
   nil
   "Sequence of Jsonnet library search directories, with later entries shadowing earlier entries."
@@ -322,7 +328,7 @@ If not provided, current point is used."
 (defun jsonnet-reformat-buffer ()
   "Reformat entire buffer using the Jsonnet format utility."
   (interactive)
-  (call-process-region (point-min) (point-max) jsonnet-command t t nil "fmt" "-"))
+  (call-process-region (point-min) (point-max) jsonnet-fmt-command t t nil "-"))
 
 (define-key jsonnet-mode-map (kbd "C-c C-r") 'jsonnet-reformat-buffer)
 
