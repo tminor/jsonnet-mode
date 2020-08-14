@@ -334,6 +334,20 @@ Moves point to the first character following open delimiter."
         (goto-char (+ 3 start))
         jsonnet-multiline-string-syntax))))
 
+(defun jsonnet-smie--indent-inside-multiline-string ()
+  "Calculate indentation when point is inside a multiline string."
+  (when (and (nth 3 (syntax-ppss))
+             (jsonnet--find-current-multiline-string))
+    (save-excursion
+      (let* ((col (current-column))
+             (multiline-string-indent (progn
+                                        (search-forward-regexp "|||")
+                                        (back-to-indentation)
+                                        (+ (current-column) jsonnet-indent-level))))
+        (if (> col multiline-string-indent)
+            col
+          multiline-string-indent)))))
+
 (defun jsonnet--find-multiline-string-prefix (start)
   "Find prefix for multiline |||...||| string starting at START.
 Moves point to first non-prefix character."
@@ -558,7 +572,8 @@ TYPE is an opening paren-like character."
                     :forward-token  #'jsonnet-smie--forward-token
                     :backward-token #'jsonnet-smie--backward-token)
         (setq-local smie-indent-basic jsonnet-indent-level)
-        (setq-local smie-indent-functions '(smie-indent-fixindent
+        (setq-local smie-indent-functions '(jsonnet-smie--indent-inside-multiline-string
+                                            smie-indent-fixindent
                                             smie-indent-bob
                                             smie-indent-close
                                             smie-indent-comment
