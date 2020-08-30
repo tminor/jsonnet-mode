@@ -205,8 +205,7 @@
        (if (smie-rule-parent-p "{")
            jsonnet-indent-level)))
     (`(:before . "then")
-     (when (and (re-search-backward (rx word-boundary "if" word-boundary) nil t)
-                (equal (jsonnet-smie--backward-token) "else"))
+     (when (re-search-backward (rx word-boundary "if" word-boundary) nil t)
        (cons 'column (current-column))))
     (`(:after . "then")
      (cond
