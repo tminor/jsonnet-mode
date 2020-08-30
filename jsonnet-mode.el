@@ -343,15 +343,16 @@ Moves point to the first character following open delimiter."
   "Calculate indentation when point is inside a multiline string."
   (when (and (nth 3 (syntax-ppss))
              (jsonnet--find-current-multiline-string))
-    (save-excursion
-      (let* ((col (current-column))
-             (multiline-string-indent (progn
-                                        (search-forward-regexp "|||")
-                                        (back-to-indentation)
-                                        (+ (current-column) jsonnet-indent-level))))
-        (if (> col multiline-string-indent)
-            col
-          multiline-string-indent)))))
+    (unless (looking-at "|||")
+      (save-excursion
+        (let* ((col (current-column))
+               (multiline-string-indent (progn
+                                          (search-forward-regexp "|||")
+                                          (back-to-indentation)
+                                          (+ (current-column) jsonnet-indent-level))))
+          (if (> col multiline-string-indent)
+              col
+            multiline-string-indent))))))
 
 (defun jsonnet--find-multiline-string-prefix (start)
   "Find prefix for multiline |||...||| string starting at START.
