@@ -238,6 +238,12 @@
          (cons 'column (+ (current-column) jsonnet-indent-level))))))
     (`(:after . "else") (if (smie-rule-parent-p "then") jsonnet-indent-level))
     (`(:before . "else") (if (smie-rule-parent-p "then") (smie-rule-parent)))
+    (`(:before . "function")
+     (save-excursion
+       (when-let ((open-paren (jsonnet-smie--find-enclosing-delim "(")))
+         (goto-char open-paren)
+         (back-to-indentation)
+         (cons 'column (+ (current-column) jsonnet-indent-level)))))
     (`(:before . "(")
      (cond
       ;; Hanging open paren.
