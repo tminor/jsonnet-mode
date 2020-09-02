@@ -73,4 +73,45 @@
                 "  foo(x)::"
                 "    x +"
                 "    5"
-                "}")))))
+                "}")
+              :indented))
+    (it "should indent function args"
+      (expect '("{"
+                "  foo("
+                "    x,"
+                "    y"
+                "  )::"
+                "    x + y"
+                "}")
+              :indented))
+    (it "should indent nested objects"
+      (expect '("{"
+                "  foo: {"
+                "    bar: 1"
+                "  }"
+                "}")
+              :indented))
+    (it "should indent nested objects on a new line"
+      (expect '("{"
+                "  foo:"
+                "    {"
+                "      bar: 1"
+                "    }"
+                "}")
+              :indented))
+    (it "should indent boolean logic"
+      (expect '("{"
+                "  foo:"
+                "    if true then"
+                "      1"
+                "    else"
+                "      2"
+                "}")
+              :indented))
+    (it "should indent fields and values separated by a blank new line"
+      (expect '("{"
+                "  foo:"
+                " "
+                "    1"
+                "}")
+              :indented))))
