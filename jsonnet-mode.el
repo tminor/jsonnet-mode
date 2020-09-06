@@ -205,11 +205,18 @@
        (if (smie-rule-parent-p "{")
            jsonnet-indent-level)))
     (`(:before . "then")
-     (when (re-search-backward (rx word-boundary "if" word-boundary) nil t)
-       (cons 'column (current-column))))
+     (cond
+      ((save-excursion
+         (and
+          (re-search-backward (rx word-boundary "if" word-boundary) nil t)
+          (equal (jsonnet-smie--backward-token) "else")))
+       (back-to-indentation)
+       (cons 'column (current-column)))
+      ((re-search-backward (rx word-boundary "if" word-boundary) nil t)
+       (cons 'column (current-column)))))
     (`(:after . "then")
      (cond
-      ;; Return nil to handle "if else" in a `(:before . then)' rule.
+      ;; Return nil to handle "else if" in a `(:before . then)' rule.
       ((and (re-search-backward (rx word-boundary "if" word-boundary) nil t)
             (equal (jsonnet-smie--backward-token) "else"))
        nil)
