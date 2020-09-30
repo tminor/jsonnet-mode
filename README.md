@@ -28,9 +28,11 @@ available on your `exec-path`. Install this on OSX with Homebrew by running
 
 ## Indentation
 
-The indentation rules are a set of rules which I put together based on my
-experience with Jsonnet. You can see them by looking at the implementation of
-`jsonnet-calculate-indent`.
+Default indentation is provided by `jsonnet-calculate-indent` and
+accommodates basic indentation. It isn't consistent with `jsonnetfmt`
+and will be replaced by an SMIE based implementation in the near
+future. If you prefer the newer implementation, you may enable it by
+setting `jsonnet-use-smie` to `t`.
 
 ## Formatting
 
@@ -58,3 +60,4 @@ There are three customizable parameters that you may configure in this mode:
 - `jsonnet-library-search-directories` specifies the sequence of Jsonnet library search directories use during evaluation.  
   Relative paths in this sequence must resolve from the directory of the buffer being evaluated.
 - `jsonnet-enable-debug-print` will cause methods in jsonnet-mode to write messages to the status bar if enabled.
+- `jsonnet-use-smie` enables SMIE-provided indentation.
