@@ -37,6 +37,8 @@
 ;;; Code:
 
 (require 'subr-x)
+(require 'smie)
+(require 'cl-extra)
 
 (defgroup jsonnet '()
   "Major mode for editing Jsonnet files."
@@ -63,6 +65,18 @@
 (defcustom jsonnet-enable-debug-print
   nil
   "If non-nil, enables debug printing in ‘jsonnet-mode’ functions."
+  :type '(boolean)
+  :group 'jsonnet)
+
+(defcustom jsonnet-indent-level
+  2
+  "Number of spaces to indent with."
+  :type '(number)
+  :group 'jsonnet)
+
+(defcustom jsonnet-use-smie
+  nil
+  "Use experimental SMIE indentation."
   :type '(boolean)
   :group 'jsonnet)
 
@@ -94,10 +108,238 @@
      ))
   "Minimal highlighting for ‘jsonnet-mode’.")
 
+(defconst jsonnet-smie-grammar
+  (smie-prec2->grammar
+   (smie-merge-prec2s
+    (smie-bnf->prec2
+     '((id)
+       (insts (inst) (insts ";" insts))
+       (inst (exp))
+       (multiline-string ("open-|||" "multiline-string" "close-|||"))
+       (exp ("{" objinside "}")
+            ("[" arrinside "]")
+            ("[" exp "forspec-close" "]")
+            ("{" exp "forspec-close" "}")
+            (multiline-string)
+            (exp "." id)
+            ("thing-index-open" "indexinside" "]")
+            ("exp-open-paren" args ")")
+            (id)
+            ("bind-begin" bind "bind-end")
+            (ifthen)
+            ("exp-open-curly" objinside "}")
+            ("function" exp))
+       (ifthen ("if" exp "then" exp)
+               (ifthen "else" exp))
+       (arrinside (exp "," exp))
+       (objinside (member)
+                  (objlocal)
+                  (objinside "," objinside))
+       (member (objlocal)
+               (field)
+               (member "," member))
+       (field (fieldname ":" exp)
+              (fieldname "::" exp)
+              (fieldname ":::" exp)
+              (fieldname "+" ":" exp)
+              (fieldname "+" "::" exp)
+              (fieldname "+" ":::" exp)
+              ("fieldname-open-paren" params "fieldname-close-paren" exp))
+       (fieldname (id)
+                  ("[" exp "]"))
+       (objlocal ("local" bind))
+       (bind (id "=" exp)
+             (bind "," bind))
+       (args (exp)
+             (id "=" exp)
+             (args "," args))
+       (params (param)
+               (param "," param))
+       (param (id)
+              (id "=" exp)))
+     '((assoc ";") (left "then") (left "else") (left ".") (left "local") (right "function") (assoc ","))
+     '((right "=")))
+    (smie-precs->prec2
+     '((right "=")
+       (right "<=" ">=" "==" "!=")
+       (left "^" "&" "|")
+       (left "<<" ">>")
+       (left "&&" "||")
+       (left "*" "/" "%")
+       (left "+" "-"))))))
+
 (defvar jsonnet-font-lock-keywords jsonnet-font-lock-keywords-1
   "Default highlighting expressions for jsonnet mode.")
 
 (defconst jsonnet-multiline-string-syntax (string-to-syntax "\""))
+
+(defun jsonnet-smie-rules (kind token)
+  "SMIE rules for KIND and TOKEN."
+  ;; FIXME: Needs more documentation.
+  (pcase (cons kind token)
+    (`(:elem . args) jsonnet-indent-level)
+    (`(:after . ,(or `"{" `"[" `"("))
+     (unless (smie-rule-hanging-p) jsonnet-indent-level))
+    (`(:before . ,(or `"{" `"[" `"("))
+     (when (smie-rule-hanging-p)
+       (back-to-indentation)
+       (cons 'column (current-column))))
+    (`(:after . ",")
+     (when-let ((open-curly (jsonnet-smie--find-enclosing-delim "{")))
+       (save-excursion
+         (goto-char open-curly)
+         (back-to-indentation)
+         (cons 'column (+ (current-column) jsonnet-indent-level)))))
+    (`(:after . ,(or `":" `"::" `":::"))
+     (if (and (save-excursion
+                (re-search-backward (rx "|||") nil t))
+              (save-excursion
+                (jsonnet-smie--forward-token)
+                (looking-at "|||")))
+         ;; FIXME: Indentation is incorrect if ||| exists anywhere
+         ;; before point while indenting a multiline string.
+         nil
+       jsonnet-indent-level))
+    (`(:after . ";")
+     (when-let ((open-curly (jsonnet-smie--find-enclosing-delim "{")))
+       (if (smie-rule-parent-p "{")
+           jsonnet-indent-level)))
+    (`(:before . "then")
+     (cond
+      ((save-excursion
+         (and
+          (re-search-backward (rx word-boundary "if" word-boundary) nil t)
+          (equal (jsonnet-smie--backward-token) "else")))
+       (back-to-indentation)
+       (cons 'column (current-column)))
+      ((re-search-backward (rx word-boundary "if" word-boundary) nil t)
+       (cons 'column (current-column)))))
+    (`(:after . "then")
+     (cond
+      ;; Return nil to handle "else if" in a `(:before . then)' rule.
+      ((and (re-search-backward (rx word-boundary "if" word-boundary) nil t)
+            (equal (jsonnet-smie--backward-token) "else"))
+       nil)
+      (t jsonnet-indent-level)))
+    (`(:before . "multiline-string")
+     (save-excursion
+       (re-search-backward (rx "|||") nil t)
+       (back-to-indentation)
+       (cons 'column (+ jsonnet-indent-level (current-column)))))
+    (`(:before . "close-|||")
+     (save-excursion
+       (re-search-backward (rx "|||") nil t)
+       (back-to-indentation)
+       (cons 'column (current-column))))
+    (`(:after . "=")
+     (cond
+      ((and (smie-rule-next-p "{" "[")
+            (not (smie-rule-hanging-p)))
+       (save-excursion
+         (beginning-of-line-text)
+         (when (looking-at "local")
+           (cons 'column (current-column)))))
+      ((smie-rule-hanging-p)
+       (save-excursion
+         (beginning-of-line-text)
+         (cons 'column (+ (current-column) jsonnet-indent-level))))))
+    (`(:after . "else") (if (smie-rule-parent-p "then") jsonnet-indent-level))
+    (`(:before . "else") (if (smie-rule-parent-p "then") (smie-rule-parent)))
+    (`(:before . "function")
+     (save-excursion
+       (cond
+        ;; function() as an argument
+        ((when-let ((open-paren (jsonnet-smie--find-enclosing-delim "(")))
+           (goto-char open-paren)
+           (back-to-indentation)
+           (cons 'column (+ (current-column) jsonnet-indent-level))))
+        (t
+         (back-to-indentation)
+         (cons 'column (current-column))))))
+    (`(:before . "(")
+     (cond
+      ;; Hanging open paren.
+      ((and (not (smie-rule-bolp))
+            (smie-rule-hanging-p))
+       (beginning-of-line-text)
+       (cons 'column (current-column)))
+      ;; Parenthesized function argument.
+      ((and (smie-rule-bolp)
+            (smie-rule-prev-p "("))
+       (smie-indent-backward-token)
+       (beginning-of-line-text)
+       (cons 'column (+ (current-column) jsonnet-indent-level)))))
+    (`(:before . ")")
+     (when-let* ((open-paren (jsonnet-smie--find-enclosing-delim "(")))
+       (goto-char open-paren)
+       (back-to-indentation)
+       (cons 'column (current-column))))
+    (`(:close-all . ,(or `")" `"}" `"]")) nil)))
+
+(defun jsonnet-smie--forward-token ()
+  (let ((pos (point)))
+    (skip-chars-forward " \t")
+    (cond
+     (t
+      (let ((tok (smie-default-forward-token)))
+        (cond
+         ((when-let ((open-bracket (jsonnet-smie--find-enclosing-delim "{" "["))
+                     (looking-at-for-p (equal tok "for")))
+            (search-forward-regexp (rx word-boundary "in" word-boundary) nil t)
+            "forspec-close"))
+         ((cond
+           ;; `smie-default-forward-token' seems to return an empty
+           ;; string when point is before "|||".
+           ((save-excursion (and (looking-at (rx "|||"))
+                                 (re-search-backward (rx "|||") nil t)
+                                 (progn
+                                   (goto-char (+ 3 (point)))
+                                   (equal (syntax-ppss-context (syntax-ppss))
+                                          'string))))
+            (re-search-forward (rx "|||") nil t)
+            "close-|||")
+           ((save-excursion (and (equal tok "|||")
+                                 (re-search-backward (rx "|||") nil t 2)
+                                 (progn
+                                   (goto-char (+ 3 (point)))
+                                   (equal (syntax-ppss-context (syntax-ppss))
+                                          'string))))
+            "close-|||")))
+         ((when (and (equal (syntax-ppss-context (syntax-ppss))
+                            'string)
+                     (save-excursion (re-search-backward (rx "|||") nil t))
+                     (save-excursion (re-search-forward (rx "|||") nil t)))
+            (end-of-line)
+            "multiline-string"))
+         (t tok)))))))
+
+(defun jsonnet-smie--backward-token ()
+  (let ((pos (point)))
+    (forward-comment (- (point)))
+    (cond
+     (t
+      (let ((tok (smie-default-backward-token)))
+        (cond
+         ((when (and (looking-back (rx "|||") (- (point) 3))
+                     (save-excursion (re-search-forward (rx "|||") nil t)))
+            (re-search-backward "|||" nil t)
+            "open-|||"))
+         ((when (and (equal (syntax-ppss-context (syntax-ppss))
+                            'string)
+                     (save-excursion (re-search-backward (rx "|||") nil t))
+                     (save-excursion (re-search-forward (rx "|||") nil t)))
+            (back-to-indentation)
+            "multiline-string"))
+         ((when (and (looking-back ")" (1- (point)))
+                     (save-excursion
+                       (forward-char -1)
+                       (goto-char (jsonnet-smie--find-enclosing-delim "("))
+                       (skip-syntax-backward "-")
+                       (skip-syntax-backward "w")
+                       (looking-at "function")))
+            (re-search-backward "function" nil t)
+            "function"))
+         (t tok)))))))
 
 (defun jsonnet--font-lock-open-multiline-string (start)
   "Set syntax of jsonnet multiline |||...||| opening delimiter.
@@ -113,6 +355,21 @@ Moves point to the first character following open delimiter."
         (put-text-property start (point) 'syntax-multiline t)
         (goto-char (+ 3 start))
         jsonnet-multiline-string-syntax))))
+
+(defun jsonnet-smie--indent-inside-multiline-string ()
+  "Calculate indentation when point is inside a multiline string."
+  (when (and (nth 3 (syntax-ppss))
+             (jsonnet--find-current-multiline-string))
+    (unless (looking-at "|||")
+      (save-excursion
+        (let* ((col (current-column))
+               (multiline-string-indent (progn
+                                          (search-forward-regexp "|||")
+                                          (back-to-indentation)
+                                          (+ (current-column) jsonnet-indent-level))))
+          (if (> col multiline-string-indent)
+              col
+            multiline-string-indent))))))
 
 (defun jsonnet--find-multiline-string-prefix (start)
   "Find prefix for multiline |||...||| string starting at START.
@@ -146,9 +403,9 @@ START is the position of |||.  PREFIX is the (whitespace) preceding |||."
   (goto-char start)
   (funcall
    (syntax-propertize-rules
-    ("\\(|\\{3\\}\\)\n"
+    ("[[:space:]]*\\(|\\{3\\}\\)\n"
      (1 (jsonnet--font-lock-open-multiline-string (match-beginning 1))))
-    ("^\\([[:space:]]*\\)\\(|\\{3\\}\\)"
+    ("^\\([[:space:]]*\\)\\(|\\{3\\}\\)[[:space:]]*%?[^\n,]*"
      (2 (jsonnet--font-lock-close-multiline-string
          (match-string 1) (match-beginning 2)))))
    (point) end))
@@ -200,6 +457,31 @@ If not inside of a multiline string, return nil."
          (start (nth 8 ppss)))
     (when in-string
       start)))
+
+(defun jsonnet--find-dot-after-close-paren ()
+  "Return the position of dot after a closing parentheses."
+  (let* ((ppss (syntax-ppss))
+         (in-string (nth 3 ppss))
+         (last-nonspace-char (if (and (looking-at (rx (not space)))
+                                      (eq (following-char) ?\)))
+                                 (point)
+                               (save-excursion
+                                 (re-search-backward (rx (not space)) nil t)
+                                 (if (eolp)
+                                     (1- (point))
+                                   (point)))))
+         (next-nonspace-char (save-excursion
+                               (1- (re-search-forward (rx (not space)) nil t))))
+         (last-char (save-excursion
+                      (goto-char last-nonspace-char)
+                      (following-char)))
+         (next-char (save-excursion
+                      (goto-char next-nonspace-char)
+                      (following-char))))
+    (when (and (not in-string)
+               (eq last-char ?\))
+               (eq next-char ?\.))
+      t)))
 
 (defun jsonnet--line-matches-regex-p (regex)
   "Return t if the current line matches REGEX."
@@ -276,7 +558,19 @@ If not inside of a multiline string, return nil."
               new-indent)
           (jsonnet--indent-toplevel)))))))
 
-(defun jsonnet-indent ()
+(defun jsonnet-smie--find-enclosing-delim (&rest type)
+  "Return TYPE's position if inside a paren-like expression, else nil.
+TYPE is an opening paren-like character."
+  (let* ((ppss (syntax-ppss)))
+    (and (< 0 (nth 0 ppss))
+         (save-excursion
+           (goto-char (nth 1 ppss))
+           (if (some (lambda (x)
+                       (looking-at (rx-to-string x)))
+                     type)
+               (nth 1 ppss))))))
+
+(defun jsonnet-indent-line ()
   "Indent current line according to Jsonnet syntax."
   (interactive)
   (let ((calculated-indent (jsonnet-calculate-indent)))
@@ -289,14 +583,35 @@ If not inside of a multiline string, return nil."
 (define-derived-mode jsonnet-mode prog-mode "Jsonnet"
   "jsonnet-mode is a major mode for editing .jsonnet files."
   :syntax-table jsonnet-mode-syntax-table
-  (set (make-local-variable 'font-lock-defaults) '(jsonnet-font-lock-keywords ;; keywords
-                                                   nil                        ;; keywords-only
-                                                   nil                        ;; case-fold
-                                                   nil                        ;; syntax-alist
-                                                   nil                        ;; syntax-begin
-                                                   ))
-  (set (make-local-variable 'indent-line-function) 'jsonnet-indent)
+  (setq-local font-lock-defaults '(jsonnet-font-lock-keywords ;; keywords
+                                   nil  ;; keywords-only
+                                   nil  ;; case-fold
+                                   nil  ;; syntax-alist
+                                   nil  ;; syntax-begin
+                                   ))
+  (if jsonnet-use-smie
+      (progn
+        (smie-setup jsonnet-smie-grammar #'jsonnet-smie-rules
+                    :forward-token  #'jsonnet-smie--forward-token
+                    :backward-token #'jsonnet-smie--backward-token)
+        (setq-local smie-indent-basic jsonnet-indent-level)
+        (setq-local smie-indent-functions '(jsonnet-smie--indent-inside-multiline-string
+                                            smie-indent-fixindent
+                                            smie-indent-bob
+                                            smie-indent-close
+                                            smie-indent-comment
+                                            smie-indent-comment-continue
+                                            smie-indent-comment-close
+                                            smie-indent-comment-inside
+                                            smie-indent-keyword
+                                            smie-indent-after-keyword
+                                            smie-indent-empty-line
+                                            smie-indent-exps)))
+    (setq-local indent-line-function #'jsonnet-indent-line))
   (setq-local syntax-propertize-function #'jsonnet--syntax-propertize-function)
+  (setq-local comment-start "// ")
+  (setq-local comment-start-skip "//+[\t ]*")
+  (setq-local comment-end "")
   (add-hook 'syntax-propertize-extend-region-functions
             #'syntax-propertize-multiline 'append 'local))
 
