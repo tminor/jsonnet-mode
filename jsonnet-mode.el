@@ -1,4 +1,4 @@
-;;; jsonnet-mode.el --- Major mode for editing jsonnet files
+;;; jsonnet-mode.el --- Major mode for editing jsonnet files -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2017 Nick Lanham
 
@@ -6,7 +6,7 @@
 ;; URL: https://github.com/mgyucht/jsonnet-mode
 ;; Package-Version: 0.0.1
 ;; Keywords: languages
-;; Package-Requires: ((emacs "24"))
+;; Package-Requires: ((emacs "24") (dash "2.17.0"))
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -39,6 +39,7 @@
 (require 'subr-x)
 (require 'smie)
 (require 'cl-extra)
+(require 'dash)
 
 (defgroup jsonnet '()
   "Major mode for editing Jsonnet files."
@@ -273,73 +274,72 @@
      (when-let* ((open-paren (jsonnet-smie--find-enclosing-delim "(")))
        (goto-char open-paren)
        (back-to-indentation)
-       (cons 'column (current-column))))
-    (`(:close-all . ,(or `")" `"}" `"]")) nil)))
+       (cons 'column (current-column))))))
 
 (defun jsonnet-smie--forward-token ()
-  (let ((pos (point)))
-    (skip-chars-forward " \t")
-    (cond
-     (t
-      (let ((tok (smie-default-forward-token)))
-        (cond
-         ((when-let ((open-bracket (jsonnet-smie--find-enclosing-delim "{" "["))
-                     (looking-at-for-p (equal tok "for")))
-            (search-forward-regexp (rx word-boundary "in" word-boundary) nil t)
-            "forspec-close"))
-         ((cond
-           ;; `smie-default-forward-token' seems to return an empty
-           ;; string when point is before "|||".
-           ((save-excursion (and (looking-at (rx "|||"))
-                                 (re-search-backward (rx "|||") nil t)
-                                 (progn
-                                   (goto-char (+ 3 (point)))
-                                   (equal (syntax-ppss-context (syntax-ppss))
-                                          'string))))
-            (re-search-forward (rx "|||") nil t)
-            "close-|||")
-           ((save-excursion (and (equal tok "|||")
-                                 (re-search-backward (rx "|||") nil t 2)
-                                 (progn
-                                   (goto-char (+ 3 (point)))
-                                   (equal (syntax-ppss-context (syntax-ppss))
-                                          'string))))
-            "close-|||")))
-         ((when (and (equal (syntax-ppss-context (syntax-ppss))
-                            'string)
-                     (save-excursion (re-search-backward (rx "|||") nil t))
-                     (save-excursion (re-search-forward (rx "|||") nil t)))
-            (end-of-line)
-            "multiline-string"))
-         (t tok)))))))
+  "SMIE function for lexing tokens after point."
+  (skip-chars-forward " \t")
+  (cond
+   (t
+    (let ((tok (smie-default-forward-token)))
+      (cond
+       ((when-let ((open-bracket (jsonnet-smie--find-enclosing-delim "{" "["))
+                   (looking-at-for-p (equal tok "for")))
+          (search-forward-regexp (rx word-boundary "in" word-boundary) nil t)
+          "forspec-close"))
+       ((cond
+         ;; `smie-default-forward-token' seems to return an empty
+         ;; string when point is before "|||".
+         ((save-excursion (and (looking-at (rx "|||"))
+                               (re-search-backward (rx "|||") nil t)
+                               (progn
+                                 (goto-char (+ 3 (point)))
+                                 (equal (syntax-ppss-context (syntax-ppss))
+                                        'string))))
+          (re-search-forward (rx "|||") nil t)
+          "close-|||")
+         ((save-excursion (and (equal tok "|||")
+                               (re-search-backward (rx "|||") nil t 2)
+                               (progn
+                                 (goto-char (+ 3 (point)))
+                                 (equal (syntax-ppss-context (syntax-ppss))
+                                        'string))))
+          "close-|||")))
+       ((when (and (equal (syntax-ppss-context (syntax-ppss))
+                          'string)
+                   (save-excursion (re-search-backward (rx "|||") nil t))
+                   (save-excursion (re-search-forward (rx "|||") nil t)))
+          (end-of-line)
+          "multiline-string"))
+       (t tok))))))
 
 (defun jsonnet-smie--backward-token ()
-  (let ((pos (point)))
-    (forward-comment (- (point)))
-    (cond
-     (t
-      (let ((tok (smie-default-backward-token)))
-        (cond
-         ((when (and (looking-back (rx "|||") (- (point) 3))
-                     (save-excursion (re-search-forward (rx "|||") nil t)))
-            (re-search-backward "|||" nil t)
-            "open-|||"))
-         ((when (and (equal (syntax-ppss-context (syntax-ppss))
-                            'string)
-                     (save-excursion (re-search-backward (rx "|||") nil t))
-                     (save-excursion (re-search-forward (rx "|||") nil t)))
-            (back-to-indentation)
-            "multiline-string"))
-         ((when (and (looking-back ")" (1- (point)))
-                     (save-excursion
-                       (forward-char -1)
-                       (goto-char (jsonnet-smie--find-enclosing-delim "("))
-                       (skip-syntax-backward "-")
-                       (skip-syntax-backward "w")
-                       (looking-at "function")))
-            (re-search-backward "function" nil t)
-            "function"))
-         (t tok)))))))
+  "SMIE function for lexing tokens before point."
+  (forward-comment (- (point)))
+  (cond
+   (t
+    (let ((tok (smie-default-backward-token)))
+      (cond
+       ((when (and (looking-back (rx "|||") (- (point) 3))
+                   (save-excursion (re-search-forward (rx "|||") nil t)))
+          (re-search-backward "|||" nil t)
+          "open-|||"))
+       ((when (and (equal (syntax-ppss-context (syntax-ppss))
+                          'string)
+                   (save-excursion (re-search-backward (rx "|||") nil t))
+                   (save-excursion (re-search-forward (rx "|||") nil t)))
+          (back-to-indentation)
+          "multiline-string"))
+       ((when (and (looking-back ")" (1- (point)))
+                   (save-excursion
+                     (forward-char -1)
+                     (goto-char (jsonnet-smie--find-enclosing-delim "("))
+                     (skip-syntax-backward "-")
+                     (skip-syntax-backward "w")
+                     (looking-at "function")))
+          (re-search-backward "function" nil t)
+          "function"))
+       (t tok))))))
 
 (defun jsonnet--font-lock-open-multiline-string (start)
   "Set syntax of jsonnet multiline |||...||| opening delimiter.
@@ -387,9 +387,10 @@ Moves point to first non-prefix character."
         (concat prefix " ")
       prefix)))
 
-(defun jsonnet--font-lock-close-multiline-string (prefix start)
+(defun jsonnet--font-lock-close-multiline-string (prefix _)
   "Set syntax of jsonnet multiline |||...||| closing delimiter.
-START is the position of |||.  PREFIX is the (whitespace) preceding |||."
+The second argument is the position of |||.  PREFIX is
+the (whitespace) preceding |||."
   (let* ((ppss (syntax-ppss))
          (in-string (nth 3 ppss))
          (string-start (nth 8 ppss)))
@@ -565,9 +566,9 @@ TYPE is an opening paren-like character."
     (and (< 0 (nth 0 ppss))
          (save-excursion
            (goto-char (nth 1 ppss))
-           (if (some (lambda (x)
-                       (looking-at (rx-to-string x)))
-                     type)
+           (if (-some-p (lambda (x)
+                          (looking-at (rx-to-string x)))
+                        type)
                (nth 1 ppss))))))
 
 (defun jsonnet-indent-line ()
@@ -598,7 +599,6 @@ TYPE is an opening paren-like character."
         (setq-local smie-indent-functions '(jsonnet-smie--indent-inside-multiline-string
                                             smie-indent-fixindent
                                             smie-indent-bob
-                                            smie-indent-close
                                             smie-indent-comment
                                             smie-indent-comment-continue
                                             smie-indent-comment-close
@@ -629,8 +629,8 @@ TYPE is an opening paren-like character."
         (search-dirs jsonnet-library-search-directories)
         (output-buffer-name "*jsonnet output*"))
     (save-some-buffers (not compilation-ask-about-save)
-                       (lexical-let ((directories (cons (file-name-directory file-to-eval)
-                                                        search-dirs)))
+                       (let ((directories (cons (file-name-directory file-to-eval)
+                                                search-dirs)))
                          (lambda ()
                            (member (file-name-directory (file-truename (buffer-file-name)))
                                    directories))))
@@ -698,7 +698,7 @@ If not provided, current point is used."
             (buffer-substring start end)))))))
 
 ;;;###autoload
-(defun jsonnet-jump (point)
+(defun jsonnet-jump (_)
   "Jumps to the definition of the Jsonnet expression at POINT."
   (interactive "d")
   (let ((current-identifier (jsonnet--get-identifier-at-location)))
