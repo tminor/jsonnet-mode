@@ -576,9 +576,10 @@ TYPE is an opening paren-like character."
   (interactive)
   (let ((calculated-indent (jsonnet-calculate-indent)))
     (when (not (eq calculated-indent (current-indentation)))
-      (beginning-of-line)
-      (delete-char (current-indentation))
-      (indent-to calculated-indent))))
+      (save-excursion
+        (beginning-of-line)
+        (delete-char (current-indentation))
+        (indent-to calculated-indent)))))
 
 ;;;###autoload
 (define-derived-mode jsonnet-mode prog-mode "Jsonnet"
