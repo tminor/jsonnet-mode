@@ -47,9 +47,20 @@
 
 (defcustom jsonnet-command
   "jsonnet"
-  "Jsonnet command to run in ‘jsonnet-eval-buffer’."
+  "Jsonnet command to run in ‘jsonnet-eval-buffer’.
+
+See also: `jsonnet-command-options'."
   :type '(string)
   :group 'jsonnet)
+
+(defcustom jsonnet-command-options
+  '()
+  "A list of options and values to pass to `jsonnet-command'.
+
+For example:
+  '(\"--ext-str\" \"foo=bar\")"
+  :group 'jsonnet
+  :type '(repeat string))
 
 (defcustom jsonnet-fmt-command
   "jsonnetfmt"
@@ -640,7 +651,8 @@ TYPE is an opening paren-like character."
     (with-current-buffer (get-buffer-create output-buffer-name)
       (setq buffer-read-only nil)
       (erase-buffer)
-      (let ((args (nconc (cl-loop for dir in search-dirs
+      (let ((args (nconc jsonnet-command-options
+                         (cl-loop for dir in search-dirs
                                   collect "-J"
                                   collect dir)
                          (list file-to-eval))))
