@@ -196,6 +196,8 @@ For example:
      (when (smie-rule-hanging-p)
        (back-to-indentation)
        (cons 'column (current-column))))
+    (`(:before . "}")
+     (smie-rule-parent))
     (`(:after . ",")
      (when-let ((open-curly (jsonnet-smie--find-enclosing-delim "{")))
        (save-excursion
