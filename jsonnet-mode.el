@@ -196,7 +196,7 @@ For example:
      (when (smie-rule-hanging-p)
        (back-to-indentation)
        (cons 'column (current-column))))
-    (`(:before . "}")
+    (`(:before . ,(or "}" "]"))
      (smie-rule-parent))
     (`(:after . ",")
      (when-let ((open-curly (jsonnet-smie--find-enclosing-delim "{")))
