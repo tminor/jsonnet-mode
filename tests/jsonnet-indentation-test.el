@@ -91,4 +91,10 @@
                 "\n"
                 "    1"
                 "}")
+              :indented)))
+  (describe "inside an array"
+    (it "should indent elements separated by a new line"
+      (expect '("foo = ["
+                "  \"bar\""
+                "]")
               :indented))))
