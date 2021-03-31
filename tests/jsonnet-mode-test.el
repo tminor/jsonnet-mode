@@ -1,7 +1,7 @@
 ;;; jsonnet-mode-test.el --- Jsonnet Mode Tests -*- lexical-binding: t -*-
 
-(when (require 'undercover nil t)
-  (undercover "*.el"))
+;; (when (require 'undercover nil t)
+;;   (undercover "*.el"))
 
 (require 'jsonnet-mode)
 
