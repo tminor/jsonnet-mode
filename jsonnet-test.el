@@ -25,7 +25,6 @@
 
 (require 'dash)
 (require 's)
-(require 'faceup)
 
 ;; TODO(tminor): Remove the following line after SMIE becomes default.
 (setq jsonnet-use-smie t)
