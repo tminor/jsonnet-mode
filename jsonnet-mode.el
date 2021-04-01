@@ -284,7 +284,7 @@ For example:
        (beginning-of-line-text)
        (cons 'column (+ (current-column) jsonnet-indent-level)))))
     (`(:before . ")")
-     (when-let* ((open-paren (jsonnet-smie--find-enclosing-delim "(")))
+     (when-let ((open-paren (jsonnet-smie--find-enclosing-delim "(")))
        (goto-char open-paren)
        (back-to-indentation)
        (cons 'column (current-column))))))
