@@ -196,6 +196,8 @@ For example:
      (when (smie-rule-hanging-p)
        (back-to-indentation)
        (cons 'column (current-column))))
+    (`(:before . ,(or "}" "]"))
+     (smie-rule-parent))
     (`(:after . ",")
      (when-let ((open-curly (jsonnet-smie--find-enclosing-delim "{")))
        (save-excursion
@@ -282,7 +284,7 @@ For example:
        (beginning-of-line-text)
        (cons 'column (+ (current-column) jsonnet-indent-level)))))
     (`(:before . ")")
-     (when-let* ((open-paren (jsonnet-smie--find-enclosing-delim "(")))
+     (when-let ((open-paren (jsonnet-smie--find-enclosing-delim "(")))
        (goto-char open-paren)
        (back-to-indentation)
        (cons 'column (current-column))))))
