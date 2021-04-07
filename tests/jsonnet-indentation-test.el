@@ -1,4 +1,4 @@
-(describe "Indentation"
+(describe "The indentation function"
   (before-all (jsonnet-mode))
 
   (describe "inside function parameters/arguments"
@@ -92,9 +92,22 @@
                 "    1"
                 "}")
               :indented)))
-  (describe "inside an array"
+
+  (describe "inside arrays"
     (it "should indent elements separated by a new line"
       (expect '("foo = ["
                 "  \"bar\""
                 "]")
-              :indented))))
+              :indented)))
+
+  (describe "inside comprehensions"
+    (it "should indent an array comprehension body"
+      (expect '("["
+                "  foo"
+                "  for foo in ['bar', 'baz', 'boo']"
+                "]")))
+    (it "should indent an object comprehension body"
+      (expect '("{"
+                "  [foo]: 'bar'"
+                "  for foo in ['bar', 'baz', 'boo']"
+                "}")))))
