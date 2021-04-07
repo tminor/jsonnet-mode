@@ -1,6 +1,5 @@
 [![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-[![Travis CI](https://travis-ci.org/tminor/jsonnet-mode.svg?branch=ci-test)](https://travis-ci.org/tminor/jsonnet-mode)
-[![Coverage Status](https://coveralls.io/repos/github/tminor/jsonnet-mode/badge.svg?branch=ci-test)](https://coveralls.io/github/tminor/jsonnet-mode?branch=ci-test)
+[![CI](https://github.com/tminor/jsonnet-mode/workflows/CI/badge.svg)](https://github.com/tminor/jsonnet-mode/actions?query=workflow%3A%22CI%22+branch%3Aci-test)
 
 # jsonnet-mode
 
@@ -59,7 +58,7 @@ definition of a given identifier.
 There are three customizable parameters that you may configure in this mode:
 
 - `jsonnet-command` allows you to indicate which Jsonnet binary should be used to render a JSON document.
-- `jsonnet-library-search-directories` specifies the sequence of Jsonnet library search directories use during evaluation.  
+- `jsonnet-library-search-directories` specifies the sequence of Jsonnet library search directories use during evaluation.
   Relative paths in this sequence must resolve from the directory of the buffer being evaluated.
 - `jsonnet-enable-debug-print` will cause methods in jsonnet-mode to write messages to the status bar if enabled.
 - `jsonnet-use-smie` enables SMIE-provided indentation.
