@@ -612,6 +612,7 @@ TYPE is an opening paren-like character."
         (setq-local smie-indent-functions '(jsonnet-smie--indent-inside-multiline-string
                                             smie-indent-fixindent
                                             smie-indent-bob
+                                            smie-indent-close
                                             smie-indent-comment
                                             smie-indent-comment-continue
                                             smie-indent-comment-close
