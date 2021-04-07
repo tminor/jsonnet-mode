@@ -1,5 +1,5 @@
 [![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-[![CI](https://github.com/tminor/jsonnet-mode/workflows/CI/badge.svg)](https://github.com/tminor/jsonnet-mode/actions?query=workflow%3A%22CI%22+branch%3Aci-test)
+[![CI](https://github.com/tminor/jsonnet-mode/workflows/CI/badge.svg)](https://github.com/tminor/jsonnet-mode/actions?query=workflow%3A%22CI%22+branch%3Amaster)
 
 # jsonnet-mode
 
