@@ -87,7 +87,7 @@ For example:
   :group 'jsonnet)
 
 (defcustom jsonnet-use-smie
-  nil
+  t
   "Use experimental SMIE indentation."
   :type '(boolean)
   :group 'jsonnet)
