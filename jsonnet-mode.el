@@ -651,26 +651,27 @@ TYPE is an opening paren-like character."
     (when-let ((output-window (get-buffer-window output-buffer-name t)))
       (quit-window nil output-window)
       (redisplay))
-    (with-current-buffer (get-buffer-create output-buffer-name)
-      (setq buffer-read-only nil)
-      (erase-buffer)
-      (let ((args (nconc jsonnet-command-options
-                         (cl-loop for dir in search-dirs
-                                  collect "-J"
-                                  collect dir)
-                         (list file-to-eval))))
-        (if (zerop (apply #'call-process jsonnet-command nil t nil args))
+    (let ((cmd jsonnet-command)
+          (args (append jsonnet-command-options
+                        (cl-loop for dir in search-dirs
+                                collect "-J"
+                                collect dir)
+                       (list file-to-eval))))
+      (with-current-buffer (get-buffer-create output-buffer-name)
+        (setq buffer-read-only nil)
+        (erase-buffer)
+        (if (zerop (apply #'call-process cmd nil t nil args))
             (progn
               (when (fboundp 'json-mode)
                 (json-mode))
               (view-mode))
-          (compilation-mode nil)))
-      (goto-char (point-min))
-      (display-buffer (current-buffer)
-                      '((display-buffer-pop-up-window
-                         display-buffer-reuse-window
-                         display-buffer-at-bottom
-                         display-buffer-pop-up-frame))))))
+          (compilation-mode nil))
+        (goto-char (point-min))
+        (display-buffer (current-buffer)
+                        '((display-buffer-pop-up-window
+                           display-buffer-reuse-window
+                           display-buffer-at-bottom
+                           display-buffer-pop-up-frame)))))))
 
 (define-key jsonnet-mode-map (kbd "C-c C-c") 'jsonnet-eval-buffer)
 
