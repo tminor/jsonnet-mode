@@ -28,7 +28,7 @@ jobs:
       with:
         version: ${{matrix.emacs_version}}
     - name: Set up Jsonnet
-      uses: zendesk/setup-jsonnet@v1
+      uses: zendesk/setup-jsonnet@v7
     - name: Set up Cask
       uses: conao3/setup-cask@master
     - name: Check out the source code
