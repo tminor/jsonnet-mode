@@ -1,5 +1,4 @@
 (describe "The indentation function"
-  (before-all (jsonnet-mode))
 
   (describe "inside function parameters/arguments"
     (it "should indent function bodies"
