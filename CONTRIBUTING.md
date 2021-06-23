@@ -1,33 +1,35 @@
 # Contributing
 
-We love pull requests from everyone. By participating in this project, you agree
-to abide by the [code of conduct].
-
-[code of conduct]: https://github.com/mgyucht/jsonnet-mode/blob/master/CODE_OF_CONDUCT.md
+We love pull requests from everyone. By participating in this project,
+you agree to abide by the [code of conduct](https://github.com/tminor/jsonnet-mode/blob/master/CODE_OF_CONDUCT.md).
 
 Fork, then clone the repo:
 
-    git clone git@github.com:your-username/jsonnet-mode.git
+```bash
+git clone git@github.com:your-username/jsonnet-mode.git
+```
 
-Make your change. Make sure the project byte-compiles cleanly and that Emacs approves of your new
-documentation:
+This project uses [Cask](https://github.com/cask/cask); install it by
+following Cask's [installation
+documentation](https://github.com/cask/cask#installation).
 
-    M-x package-install SPC package-lint RET RET
-    (package-lint-current-buffer)
-    (checkdoc)
+To install `jsonnet-mode`'s dependencies, use Cask:
 
-Push to your fork and [submit a pull request][pr].
+```bash
+cask install
+```
 
-[pr]: https://github.com/mgyucht/jsonnet-mode/compare/
+After adding your change, ensure that the unit tests pass:
 
-At this point you're waiting on me. I like to at least comment on pull requests within three
-business days (and, typically, one business day). We may suggest some changes or improvements or
-alternatives.
+```bash
+cask exec buttercup -L .
+```
 
-Some things that will increase the chance that your pull request is accepted:
+After you've committed your changes and tested them, [submit a pull
+request](https://github.com/tminor/jsonnet-mode/compare/).
 
-* Follow bbatsov's [emacs lisp style guide][style].
-* Write a [good commit message][commit].
+Some things that will increase the chance that your pull request is
+accepted:
 
-[style]: https://github.com/bbatsov/emacs-lisp-style-guide
-[commit]: http://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html
+- Follow bbatsov's [emacs lisp style guide](https://github.com/bbatsov/emacs-lisp-style-guide); and
+- Write a [good commit message](https://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html).
