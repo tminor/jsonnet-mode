@@ -52,11 +52,9 @@
           t
         `(nil . ,(format "\nGiven indented text \n\n%s\n\nwas instead indented to \n\n%s\n\n"
                          text text-with-indent))))))
-
 (buttercup-define-matcher :to-render-as (text expect)
   (let* ((text (s-join "\n" (funcall text)))
          (expect (s-join "\n" (funcall expect)))
-         (text-no-indent (jsonnet-trim-indent text))
          (inhibit-message t)
          (tmp-file (make-temp-file "jsonnet-eval-test-"))
          (kill-buffer-query-functions '(t))
@@ -68,21 +66,23 @@
                                (find-file tmp-file)
                                (find-buffer-visiting tmp-file)))
       (jsonnet-mode)
-      (insert text-no-indent)
+      (insert text)
       (hack-local-variables)
       (save-buffer)
       (jsonnet-eval-buffer)
-      (kill-buffer))
-    (with-current-buffer "*jsonnet output*"
-      (setq rendered-text (jsonnet-buffer-string)))
-    (if (string= rendered-text expect)
-        t
-      `(nil . ,(format (concat "\nGiven Jsonnet program\n\n%s\n\n"
-                               "rendered JSON output\n\n%s\n\n"
-                               "but it should have been\n\n%s\n\n")
-                       text
-                       rendered-text
-                       expect)))))
+      ;; `jsonnet-eval-buffer' should create its output buffer and open
+      ;; it in a new window; calling `other-window' here should switch
+      ;; to that window.
+      (other-window 1)
+      (setq rendered-text (jsonnet-buffer-string))
+      (if (string= rendered-text expect)
+          t
+        `(nil . ,(format (concat "\nGiven Jsonnet program\n\n%s\n\n"
+                                 "rendered JSON output\n\n%s\n\n"
+                                 "but it should have been\n\n%s\n\n")
+                         text
+                         rendered-text
+                         expect))))))
 
 (provide 'jsonnet-test)
 ;;; jsonnet-test.el ends here

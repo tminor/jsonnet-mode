@@ -1,5 +1,5 @@
 (describe "jsonnet-eval-buffer"
-  (after-all (kill-buffer "*jsonnet output*"))
+  (after-each (delete-other-windows))
 
   (it "compiles a valid Jsonnet program and renders the result"
     (expect '("{"
