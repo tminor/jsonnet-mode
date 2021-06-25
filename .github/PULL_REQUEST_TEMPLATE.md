@@ -7,10 +7,8 @@
 <!--- Why is this change required? What problem does it solve? -->
 <!--- If it fixes an open issue, please link to the issue here. -->
 
-## How Has This Been Tested?
-<!--- Please describe in detail how you tested your changes. -->
-<!--- If relevant, include a sample of Jsonnet code and describe how your pull request changes -->
-<!--- the behavior of jsonnet-mode with respect to that sample. -->
+## Have you written tests for your change?
+<!--- If applicable, include unit tests for your changes. -->
 
 ## Types of changes
 <!--- What types of changes does your code introduce? Put an `x` in all the boxes that apply: -->
