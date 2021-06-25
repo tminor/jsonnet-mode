@@ -61,6 +61,7 @@
          (tmp-file (make-temp-file "jsonnet-eval-test-"))
          (kill-buffer-query-functions '(t))
          (compilation-ask-about-save nil)
+         (enable-local-variables :all)
          rendered-text)
     (with-current-buffer (or (find-buffer-visiting tmp-file)
                              (progn
@@ -68,6 +69,7 @@
                                (find-buffer-visiting tmp-file)))
       (jsonnet-mode)
       (insert text-no-indent)
+      (hack-local-variables)
       (save-buffer)
       (jsonnet-eval-buffer)
       (kill-buffer))
