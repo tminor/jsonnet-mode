@@ -3,9 +3,8 @@
 (when (require 'undercover nil t)
   (let ((undercover-force-coverage t))
     (undercover "*.el" "tests/*.el"
-                (:report-file "./coverage-final.json")
                 (:send-report nil)
-                (:report-format 'coveralls))))
+                (:report-format 'lcov))))
 
 (require 'jsonnet-mode)
 (require 'undercover)

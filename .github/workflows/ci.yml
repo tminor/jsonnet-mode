@@ -38,7 +38,7 @@ jobs:
     - name: Byte compile
       run: cask build
     - name: Run tests
-      run: cask exec buttercup -L .
+      run: UNDERCOVER_FORCE=true cask exec buttercup -L .
     - name: Coveralls
       uses: coverallsapp/github-action@master
       with:
