@@ -43,6 +43,7 @@ jobs:
       uses: coverallsapp/github-action@master
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
+        parallel: true
   finish:
     needs: test
     runs-on: ubuntu-latest
@@ -51,3 +52,4 @@ jobs:
       uses: coverallsapp/github-action@master
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
+        parallel-finished: true
