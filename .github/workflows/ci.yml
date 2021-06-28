@@ -35,10 +35,12 @@ jobs:
       uses: actions/checkout@v2
     - name: Install dependencies
       run: cask install
+    - name: Run tests before byte compilation
+      run: UNDERCOVER_FORCE=true cask exec buttercup -L .
     - name: Byte compile
       run: cask build
-    - name: Run tests
-      run: UNDERCOVER_FORCE=true cask exec buttercup -L .
+    - name: Run tests after byte compilation
+      run: cask exec buttercup -L .
     - name: Coveralls
       uses: coverallsapp/github-action@master
       with:
