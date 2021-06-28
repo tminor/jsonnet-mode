@@ -2,7 +2,7 @@
 
 (when (require 'undercover nil t)
   (let ((undercover-force-coverage t))
-    (undercover "jsonnet-mode.el"
+    (undercover "jsonnet-mode.el" "tests/*.el"
                 (:send-report nil)
                 (:report-format 'lcov)
                 (:merge-report nil))))
