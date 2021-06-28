@@ -4,7 +4,8 @@
   (let ((undercover-force-coverage t))
     (undercover "jsonnet-mode.el"
                 (:send-report nil)
-                (:report-format 'lcov))))
+                (:report-format 'lcov)
+                (:merge-report nil))))
 
 (require 'jsonnet-mode)
 (require 'undercover)
