@@ -648,15 +648,12 @@ TYPE is an opening paren-like character."
                          (lambda ()
                            (member (file-name-directory (file-truename (buffer-file-name)))
                                    directories))))
-    (when-let ((output-window (get-buffer-window output-buffer-name t)))
-      (quit-window nil output-window)
-      (redisplay))
     (let ((cmd jsonnet-command)
           (args (append jsonnet-command-options
                         (cl-loop for dir in search-dirs
-                                collect "-J"
-                                collect dir)
-                       (list file-to-eval))))
+                                 collect "-J"
+                                 collect dir)
+                        (list file-to-eval))))
       (with-current-buffer (get-buffer-create output-buffer-name)
         (setq buffer-read-only nil)
         (erase-buffer)
@@ -667,11 +664,7 @@ TYPE is an opening paren-like character."
               (view-mode))
           (compilation-mode nil))
         (goto-char (point-min))
-        (display-buffer (current-buffer)
-                        '((display-buffer-pop-up-window
-                           display-buffer-reuse-window
-                           display-buffer-at-bottom
-                           display-buffer-pop-up-frame)))))))
+        (display-buffer (current-buffer) '(nil (inhibit-same-window . t)))))))
 
 (define-key jsonnet-mode-map (kbd "C-c C-c") 'jsonnet-eval-buffer)
 
