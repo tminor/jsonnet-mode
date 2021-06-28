@@ -8,6 +8,5 @@
 
 (development
  (depends-on "buttercup")
- ;; Remove undercover for now.
- ;; (depends-on "undercover")
+ (depends-on "undercover")
  (depends-on "f"))
