@@ -53,6 +53,12 @@ in most cases.
 any errors are encountered, they should be conveniently displayed in
 `compilation-mode`.
 
+It will create a buffer called `*jsonnet output*`. Default display
+behaviour of these buffers can be customized using
+`display-buffer-alist` (see [The Zen of Buffer
+Display](https://www.gnu.org/software/emacs/manual/html_node/elisp/The-Zen-of-Buffer-Display.html)
+for examples of how to do this).
+
 ## Navigation
 
 `jsonnet-mode` also provides some methods to make navigation easier. In
