@@ -53,6 +53,12 @@ in most cases.
 any errors are encountered, they should be conveniently displayed in
 `compilation-mode`.
 
+It will create a buffer called `*jsonnet output*`. Default display
+behaviour of these buffers can be customized using
+`display-buffer-alist` (see [The Zen of Buffer
+Display](https://www.gnu.org/software/emacs/manual/html_node/elisp/The-Zen-of-Buffer-Display.html)
+for examples of how to do this).
+
 ## Navigation
 
 `jsonnet-mode` also provides some methods to make navigation easier. In
@@ -76,3 +82,13 @@ There are several customizable parameters that you may configure in this mode:
 - `jsonnet-use-smie` enables SMIE-provided indentation.
 - `jsonnet-indent-level` changes the number of spaces used to indent
   Jsonnet code.
+
+## Buffer display
+
+The potential buffers that the mode creates are:
+
+* `*jsonnet output*`
+
+If you require special customization of their display, you can either
+use `display-buffer-alist` as described [above](#buffer-display) or
+investigate the options provided in your distribution of GNU Emacs.
