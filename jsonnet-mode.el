@@ -101,8 +101,8 @@ For example:
           "\\(([a-zA-Z0-9_, ]*)\s*=\\|\s*=\s*function\\)"))
 
 (defconst jsonnet-font-lock-keywords-1
-  (let ((builtin-regex (regexp-opt '("assert" "else" "error" "for" "function" "if" "import" "importstr" "in" "local" "self" "super" "then") 'words))
-        (constant-regex (regexp-opt '("false" "null" "true") 'words))
+  (let ((builtin-regex (regexp-opt '("assert" "else" "error" "for" "function" "if" "import" "importstr" "in" "local" "self" "super" "then") 'symbols))
+        (constant-regex (regexp-opt '("false" "null" "true") 'symbols))
         (function-name-regex jsonnet--function-name-regexp)
         ;; Any other local bindings are variables
         (variable-name-regex (concat "local \\(" jsonnet--identifier-regexp "\\)\s+="))
