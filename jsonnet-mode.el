@@ -619,8 +619,7 @@ TYPE is an opening paren-like character."
                                             smie-indent-comment-inside
                                             smie-indent-keyword
                                             smie-indent-after-keyword
-                                            smie-indent-empty-line
-                                            smie-indent-exps)))
+                                            smie-indent-empty-line)))
     (setq-local indent-line-function #'jsonnet-indent-line))
   (setq-local syntax-propertize-function #'jsonnet--syntax-propertize-function)
   (setq-local comment-start "// ")

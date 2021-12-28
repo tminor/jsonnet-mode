@@ -104,9 +104,18 @@
       (expect '("["
                 "  foo"
                 "  for foo in ['bar', 'baz', 'boo']"
-                "]")))
+                "]")
+              :indented))
     (it "should indent an object comprehension body"
       (expect '("{"
                 "  [foo]: 'bar'"
                 "  for foo in ['bar', 'baz', 'boo']"
-                "}")))))
+                "}")
+              :indented)))
+
+  (describe "at end of file"
+    (it "should not indent comments"
+      (expect '("{}"
+                ""
+                "// END")
+              :indented))))
