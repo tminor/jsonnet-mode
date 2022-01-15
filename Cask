@@ -9,4 +9,5 @@
 (development
  (depends-on "buttercup")
  (depends-on "undercover")
- (depends-on "f"))
+ (depends-on "f")
+ (depends-on "faceup"))

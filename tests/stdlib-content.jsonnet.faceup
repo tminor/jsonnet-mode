@@ -1,0 +1,1257 @@
+«b:local» «v:html» = «b:import» «s:'html.libsonnet'»;
+
+{
+«k:  intro:» html.paragraphs([
+    «s:|||
+      This page describes the functions available in Jsonnet's standard library, i.e. the object
+      implicitly bound to the <code>std</code> variable. Some of the standard library functions
+      can be implemented in Jsonnet. Their code can be found in the <tt>std.jsonnet</tt> file.
+      The behavior of some of the other functions, i.e. the ones that expose extra functionality
+      not otherwise available to programmers, is described formally in the <a href="/language/spec.html">specification</a>.
+    |||»,
+    «s:|||
+      The standard library is implicitly added to all Jsonnet programs by enclosing them in a
+      local construct. For example, if the program given by the user is <code>{x: "foo"}</code>,
+      then the actual code executed would be <code>local std = { ... }; {x: "foo"}</code>. The
+      functions in the standard library are all hidden fields of the <code>std</code> object.
+    |||»,
+  ]),
+«k:  prefix:» «s:'std'»,
+«k:  groups:» [
+    {
+«k:      name:» «s:'External Variables'»,
+«k:      id:» «s:'ext_vars'»,
+«k:      fields:» [
+        {
+«k:          name:» «s:'extVar'»,
+«k:          params:» [«s:'x'»],
+«k:          description:» «s:'If an external variable with the given name was defined, return its string value. Otherwise, raise an error.'»,
+        },
+      ],
+    },
+    {
+«k:      name:» «s:'Types and Reflection'»,
+«k:      id:» «s:'types_reflection'»,
+«k:      fields:» [
+        {
+«k:          name:» «s:'thisFile'»,
+«k:          description:» «s:'Note that this is a field. It contains the current Jsonnet filename as a string.'»,
+        },
+        {
+«k:          name:» «s:'type'»,
+«k:          params:» [«s:'x'»],
+«k:          description:» html.paragraphs([
+	    «s:|||
+              Return a string that indicates the type of the value. The possible return values are:
+              "array", "boolean", "function", "null", "number", "object", and "string".
+            |||»,
+            «s:|||
+              The following functions are also available and return a boolean:
+              <code>std.isArray(v)</code>, <code>std.isBoolean(v)</code>, <code>std.isFunction(v)</code>,
+              <code>std.isNumber(v)</code>, <code>std.isObject(v)</code>, and
+              <code>std.isString(v)</code>.
+            |||»,
+          ]),
+        },
+        {
+«k:          name:» «s:'length'»,
+«k:          params:» [«s:'x'»],
+«k:          description:» «s:|||
+            Depending on the type of the value given, either returns the number of elements in the
+            array, the number of codepoints in the string, the number of parameters in the function, or
+            the number of fields in the object. Raises an error if given a primitive value, i.e.
+            <code>null</code>, <code>true</code> or <code>false</code>.
+          |||»,
+        },
+        {
+«k:          name:» «s:'objectHas'»,
+«k:          params:» [«s:'o'», «s:'f'»],
+«k:          description:» «s:|||
+            Returns <code>true</code> if the given object has the field (given as a string), otherwise
+            <code>false</code>. Raises an error if the arguments are not object and string
+            respectively. Returns false if the field is hidden.
+          |||»,
+        },
+        {
+«k:          name:» «s:'objectFields'»,
+«k:          params:» [«s:'o'»],
+«k:          description:» «s:|||
+            Returns an array of strings, each element being a field from the given object. Does not include
+            hidden fields.
+          |||»,
+        },
+        {
+«k:          name:» «s:'objectHasAll'»,
+«k:          params:» [«s:'o'», «s:'f'»],
+«k:          description:» «s:|||
+            As <code>std.objectHas</code> but also includes hidden fields.
+          |||»,
+        },
+        {
+«k:          name:» «s:'objectFieldsAll'»,
+«k:          params:» [«s:'o'»],
+«k:          description:» «s:|||
+            As <code>std.objectFields</code> but also includes hidden fields.
+          |||»,
+        },
+        {
+«k:          name:» «s:'prune'»,
+«k:          params:» [«s:'a'»],
+«k:          description:» «s:|||
+            Recursively remove all "empty" members of <code>a</code>. "Empty" is defined as zero
+            length `arrays`, zero length `objects`, or `null` values.
+            The argument <code>a</code> may have any type.
+          |||»,
+        },
+        {
+«k:          name:» «s:'mapWithKey'»,
+«k:          params:» [«s:'func'», «s:'obj'»],
+«k:          description:» «s:|||
+            Apply the given function to all fields of the given object, also passing
+            the field name. The function <code>func</code> is expected to take the
+            field name as the first parameter and the field value as the second.
+          |||»,
+        },
+      ],
+    },
+    {
+«k:      name:» «s:'Mathematical Utilities'»,
+«k:      id:» «s:'math'»,
+«k:      intro:» [
+        «s:|||
+          <p>
+              The following mathematical functions are available:
+          </p>
+          <ul>
+              <ul><code>std.abs(n)</code></ul>
+              <ul><code>std.sign(n)</code></ul>
+              <ul><code>std.max(a, b)</code></ul>
+              <ul><code>std.min(a, b)</code></ul>
+              <ul><code>std.pow(x, n)</code></ul>
+              <ul><code>std.exp(x)</code></ul>
+              <ul><code>std.log(x)</code></ul>
+              <ul><code>std.exponent(x)</code></ul>
+              <ul><code>std.mantissa(x)</code></ul>
+              <ul><code>std.floor(x)</code></ul>
+              <ul><code>std.ceil(x)</code></ul>
+              <ul><code>std.sqrt(x)</code></ul>
+              <ul><code>std.sin(x)</code></ul>
+              <ul><code>std.cos(x)</code></ul>
+              <ul><code>std.tan(x)</code></ul>
+              <ul><code>std.asin(x)</code></ul>
+              <ul><code>std.acos(x)</code></ul>
+              <ul><code>std.atan(x)</code></ul>
+          </ul>
+          <p>
+              The function <code>std.mod(a, b)</code> is what the % operator is desugared to. It performs
+              modulo arithmetic if the left hand side is a number, or if the left hand side is a string,
+              it does Python-style string formatting with <code>std.format()</code>.
+          </p>
+        |||»,
+      ],
+«k:      fields:» [
+        {
+«k:          name:» «s:'std.clamp'»,
+«k:          params:» [«s:'x'», «s:'minVal'», «s:'maxVal'»],
+«k:          availableSince:» «s:'0.15.0'»,
+«k:          description:» «s:|||
+            Clamp a value to fit within the range [<code>minVal</code>, <code>maxVal</code>].
+            Equivalent to <code>std.max(minVal, std.min(x, maxVal))</code>.
+          |||»,
+«k:          examples:» [
+            {
+«k:              input:» «s:'std.clamp(-3, 0, 5)'»,
+«k:              output:» «f:std.clamp»(-«c:3», «c:0», «c:5»),
+            },
+            {
+«k:              input:» «s:'std.clamp(4, 0, 5)'»,
+«k:              output:» «f:std.clamp»(«c:4», «c:0», «c:5»),
+            },
+            {
+«k:              input:» «s:'std.clamp(7, 0, 5)'»,
+«k:              output:» «f:std.clamp»(«c:7», «c:0», «c:5»),
+            },
+          ],
+        },
+
+      ],
+    },
+    {
+«k:      name:» «s:'Assertions and Debugging'»,
+«k:      id:» «s:'assertions_debugging'»,
+«k:      fields:» [
+        {
+«k:          name:» «s:'assertEqual'»,
+«k:          params:» [«s:'a'», «s:'b'»],
+«k:          description:» «s:'Ensure that <code>a == b</code>. Returns <code>true</code> or throws an error message.'»,
+        },
+      ],
+    },
+    {
+«k:      name:» «s:'String Manipulation'»,
+«k:      id:» «s:'string'»,
+«k:      fields:» [
+        {
+«k:          name:» «s:'toString'»,
+«k:          params:» [«s:'a'»],
+«k:          description:» «s:|||
+            Convert the given argument to a string.
+          |||»,
+        },
+        {
+«k:          name:» «s:'codepoint'»,
+«k:          params:» [«s:'str'»],
+«k:          description:» «s:|||
+            Returns the positive integer representing the unicode codepoint of the character in the
+            given single-character string. This function is the inverse of <code>std.char(n)</code>.
+          |||»,
+        },
+        {
+«k:          name:» «s:'char'»,
+«k:          params:» [«s:'n'»],
+«k:          description:» «s:|||
+            Returns a string of length one whose only unicode codepoint has integer id <code>n</code>.
+            This function is the inverse of <code>std.codepoint(str)</code>.
+          |||»,
+        },
+        {
+«k:          name:» «s:'substr'»,
+«k:          params:» [«s:'str'», «s:'from'», «s:'len'»],
+«k:          description:» «s:|||
+            Returns a string that is the part of <code>s</code> that starts at offset <code>from</code>
+            and is <code>len</code> codepoints long. If the string <code>s</code> is shorter than
+            <code>from+len</code>, the suffix starting at position <code>from</code> will be returned.
+          |||»,
+        },
+        {
+«k:          name:» «s:'findSubstr'»,
+«k:          params:» [«s:'pat'», «s:'str'»],
+«k:          description:» «s:|||
+            Returns an array that contains the indexes of all occurances of <code>pat</code> in
+            <code>str</code>.
+          |||»,
+        },
+        {
+«k:          name:» «s:'startsWith'»,
+«k:          params:» [«s:'a'», «s:'b'»],
+«k:          description:» «s:|||
+            Returns whether the string a is prefixed by the string b.
+          |||»,
+        },
+        {
+«k:          name:» «s:'endsWith'»,
+«k:          params:» [«s:'a'», «s:'b'»],
+«k:          description:» «s:|||
+            Returns whether the string a is suffixed by the string b.
+          |||»,
+        },
+        {
+«k:          name:» «s:'stripChars'»,
+«k:          params:» [«s:'str'», «s:'chars'»],
+«k:          availableSince:» «s:'0.15.0'»,
+«k:          description:» «s:|||
+            Removes characters <code>chars</code> from the beginning and from the end of <code>str</code>.
+          |||»,
+«k:          examples:» [
+            {
+«k:              input:» «s:'std.stripChars(" test test test     ", " ")'»,
+«k:              output:» «f:std.stripChars»(«s:' test test test     '», «s:' '»),
+            },
+            {
+«k:              input:» «s:'std.stripChars("aaabbbbcccc", "ac")'»,
+«k:              output:» «f:std.stripChars»(«s:'aaabbbbcccc'», «s:'ac'»),
+            },
+            {
+«k:              input:» «s:'std.stripChars("cacabbbbaacc", "ac")'»,
+«k:              output:» «f:std.stripChars»(«s:'cacabbbbaacc'», «s:'ac'»),
+            },
+          ],
+        },
+        {
+«k:          name:» «s:'lstripChars'»,
+«k:          params:» [«s:'str'», «s:'chars'»],
+«k:          availableSince:» «s:'0.15.0'»,
+«k:          description:» «s:|||
+            Removes characters <code>chars</code> from the beginning of <code>str</code>.
+          |||»,
+«k:          examples:» [
+            {
+«k:              input:» «s:'std.lstripChars(" test test test     ", " ")'»,
+«k:              output:» «f:std.lstripChars»(«s:' test test test     '», «s:' '»),
+            },
+            {
+«k:              input:» «s:'std.lstripChars("aaabbbbcccc", "ac")'»,
+«k:              output:» «f:std.lstripChars»(«s:'aaabbbbcccc'», «s:'ac'»),
+            },
+            {
+«k:              input:» «s:'std.lstripChars("cacabbbbaacc", "ac")'»,
+«k:              output:» «f:std.lstripChars»(«s:'cacabbbbaacc'», «s:'ac'»),
+            },
+          ],
+        },
+        {
+«k:          name:» «s:'rstripChars'»,
+«k:          params:» [«s:'str'», «s:'chars'»],
+«k:          availableSince:» «s:'0.15.0'»,
+«k:          description:» «s:|||
+            Removes characters <code>chars</code> from the end of <code>str</code>.
+          |||»,
+«k:          examples:» [
+            {
+«k:              input:» «s:'std.rstripChars(" test test test     ", " ")'»,
+«k:              output:» «f:std.rstripChars»(«s:' test test test     '», «s:' '»),
+            },
+            {
+«k:              input:» «s:'std.rstripChars("aaabbbbcccc", "ac")'»,
+«k:              output:» «f:std.rstripChars»(«s:'aaabbbbcccc'», «s:'ac'»),
+            },
+            {
+«k:              input:» «s:'std.rstripChars("cacabbbbaacc", "ac")'»,
+«k:              output:» «f:std.rstripChars»(«s:'cacabbbbaacc'», «s:'ac'»),
+            },
+          ],
+        },
+        {
+«k:          name:» «s:'split'»,
+«k:          params:» [«s:'str'», «s:'c'»],
+«k:          description:» «s:|||
+            Split the string <code>str</code> into an array of strings, divided by the single character
+            <code>c</code>.
+          |||»,
+«k:          examples:» [
+            {
+«k:              input:» @«s:'std.split("foo/bar", "/")'»,
+«k:              output:» «f:std.split»(«s:'foo/bar'», «s:'/'»),
+            },
+            {
+«k:              input:» @«s:'std.split("/foo/", "/")'»,
+«k:              output:» «f:std.split»(«s:'/foo/'», «s:'/'»),
+            },
+          ],
+        },
+        {
+«k:          name:» «s:'splitLimit'»,
+«k:          params:» [«s:'str'», «s:'c'», «s:'maxsplits'»],
+«k:          description:» «s:|||
+            As std.split(str, c) but will stop after <code>maxsplits</code> splits, thereby the largest
+            array it will return has length <code>maxsplits + 1</code>.  A limit of -1 means unlimited.
+          |||»,
+«k:          examples:» [
+            {
+«k:              input:» @«s:'std.splitLimit("foo/bar", "/", 1)'»,
+«k:              output:» «f:std.splitLimit»(«s:'foo/bar'», «s:'/'», «c:1»),
+            },
+            {
+«k:              input:» @«s:'std.splitLimit("/foo/", "/", 1)'»,
+«k:              output:» «f:std.splitLimit»(«s:'foo/bar'», «s:'/'», «c:1»),
+            },
+          ],
+        },
+        {
+«k:          name:» «s:'strReplace'»,
+«k:          params:» [«s:'str'», «s:'from'», «s:'to'»],
+«k:          description:» «s:|||
+            Returns a copy of the string in which all occurrences of string <code>from</code> have been
+            replaced with string <code>to</code>.
+          |||»,
+«k:          examples:» [
+            {
+«k:              input:» @«s:"std.strReplace('I like to skate with my skateboard', 'skate', 'surf')"»,
+«k:              output:» «f:std.strReplace»(«s:'I like to skate with my skateboard'», «s:'skate'», «s:'surf'»),
+            },
+          ],
+        },
+        {
+«k:          name:» «s:'asciiUpper'»,
+«k:          params:» [«s:'str'»],
+«k:          description:» «s:|||
+            Returns a copy of the string in which all ASCII letters are capitalized.
+          |||»,
+«k:          examples:» [
+            {
+«k:              input:» «s:"std.asciiUpper('100 Cats!')"»,
+«k:              output:» «f:std.asciiUpper»(«s:'100 Cats!'»),
+            },
+          ],
+        },
+        {
+«k:          name:» «s:'asciiLower'»,
+«k:          params:» [«s:'str'»],
+«k:          description:» «s:|||
+            Returns a copy of the string in which all ASCII letters are lower cased.
+          |||»,
+«k:          examples:» [
+            {
+«k:              input:» «s:"std.asciiLower('100 Cats!')"»,
+«k:              output:» «f:std.asciiLower»(«s:'100 Cats!'»),
+            },
+          ],
+        },
+        {
+«k:          name:» «s:'stringChars'»,
+«k:          params:» [«s:'str'»],
+«k:          description:» «s:|||
+            Split the string <code>str</code> into an array of strings, each containing a single
+            codepoint.
+          |||»,
+«k:          examples:» [
+            {
+«k:              input:» «s:'std.stringChars("foo")'»,
+«k:              output:» «f:std.stringChars»(«s:'foo'»),
+            },
+          ],
+        },
+        {
+«k:          name:» «s:'format'»,
+«k:          params:» [«s:'str'», «s:'vals'»],
+«k:          description:» «s:|||
+            Format the string <code>str</code> using the values in <code>vals</code>. The values can be
+            an array, an object, or in other cases are treated as if they were provided in a singleton
+            array. The string formatting follows the <a
+            href="https://docs.python.org/2/library/stdtypes.html#string-formatting">same rules</a> as
+            Python. The <code>%</code> operator can be used as a shorthand for this function.
+          |||»,
+«k:          examples:» [
+            {
+«k:              input:» «s:'std.format("Hello %03d", 12)'»,
+«k:              output:» «f:std.format»(«s:'Hello %03d'», «c:12»),
+            },
+            {
+«k:              input:» «s:'"Hello %03d" % 12'»,
+«k:              output:» «s:'Hello %03d'» % «c:12»,
+            },
+            {
+«k:              input:» «s:'"Hello %s, age %d" % ["Foo", 25]'»,
+«k:              output:» «s:'Hello %s, age %d'» % [«s:'Foo'», «c:25»],
+            },
+            {
+              input: «s:'"Hello %(name)s, age %(age)d" % {age: 25, name: "Foo"}'»,
+              output: «s:'Hello %(name)s, age %(age)d'» % { age: «c:25», name: «s:'Foo'» },
+            },
+          ],
+        },
+        {
+«k:          name:» «s:'escapeStringBash'»,
+«k:          params:» [«s:'str'»],
+«k:          description:» «s:|||
+            Wrap <code>str</code> in single quotes, and escape any single quotes within <code>str</code>
+            by changing them to a sequence <tt>'"'"'</tt>. This allows injection of arbitrary strings
+            as arguments of commands in bash scripts.
+          |||»,
+        },
+        {
+«k:          name:» «s:'escapeStringDollars'»,
+«k:          params:» [«s:'str'»],
+«k:          description:» «s:|||
+            Convert $ to $$ in <code>str</code>. This allows injection of arbitrary strings into
+            systems that use $ for string interpolation (like Terraform).
+          |||»,
+        },
+        {
+«k:          name:» «s:'escapeStringJson'»,
+«k:          params:» [«s:'str'»],
+«k:          description:» «s:|||
+            Convert <code>str</code> to allow it to be embedded in a JSON representation, within a
+            string. This adds quotes, escapes backslashes, and escapes unprintable characters.
+          |||»,
+«k:          examples:» [
+            {
+«k:              input:» «s:|||
+                local description = "Multiline\nc:\\path";
+                "{name: %s}" % std.escapeStringJson(description)
+              |||»,
+«k:              output:» (
+                «b:local» «v:description» = «s:'Multiline\nc:\\path'»;
+                «s:'{name: %s}'» % «f:std.escapeStringJson»(description)
+              ),
+            },
+          ],
+        },
+        {
+«k:          name:» «s:'escapeStringPython'»,
+«k:          params:» [«s:'str'»],
+«k:          description:» «s:|||
+            Convert <code>str</code> to allow it to be embedded in Python. This is an alias for
+            <code>std.escapeStringJson</code>.
+          |||»,
+        },
+      ],
+    },
+    {
+«k:      name:» «s:'Parsing'»,
+«k:      id:» «s:'parsing'»,
+«k:      fields:» [
+        {
+«k:          name:» «s:'parseInt'»,
+«k:          params:» [«s:'str'»],
+«k:          description:» «s:|||
+            Parses a signed decimal integer from the input string.
+          |||»,
+«k:          examples:» [
+            {
+«k:              input:» «s:'std.parseInt("123")'»,
+«k:              output:» «f:std.parseInt»(«s:'123'»),
+            },
+            {
+«k:              input:» «s:'std.parseInt("-123")'»,
+«k:              output:» «f:std.parseInt»(«s:'-123'»),
+            },
+          ],
+        },
+        {
+«k:          name:» «s:'parseOctal'»,
+«k:          params:» [«s:'str'»],
+«k:          description:» «s:|||
+            Parses an unsigned octal integer from the input string. Initial zeroes are tolerated.
+          |||»,
+«k:          examples:» [
+            {
+«k:              input:» «s:'std.parseOctal("755")'»,
+«k:              output:» «f:std.parseOctal»(«s:'755'»),
+            },
+          ],
+        },
+        {
+«k:          name:» «s:'parseHex'»,
+«k:          params:» [«s:'str'»],
+«k:          description:» «s:|||
+            Parses an unsigned hexadecimal integer, from the input string. Case insensitive.
+          |||»,
+«k:          examples:» [
+            {
+«k:              input:» «s:'std.parseHex("ff")'»,
+«k:              output:» «f:std.parseHex»(«s:'ff'»),
+            },
+          ],
+        },
+        {
+«k:          name:» «s:'parseJson'»,
+«k:          availableSince:» «s:'0.13.0'»,
+«k:          params:» [«s:'str'»],
+«k:          description:» «s:|||
+            Parses a JSON string.
+          |||»,
+«k:          examples:» [
+            {
+              input: «s:'std.parseJson(\'{"foo": "bar"}\')'»,
+              output: «f:std.parseJson»(«s:'{"foo": "bar"}'»),
+            },
+          ],
+        },
+        {
+«k:          name:» «s:'encodeUTF8'»,
+«k:          params:» [«s:'str'»],
+«k:          availableSince:» «s:'0.13.0'»,
+«k:          description:» «s:|||
+            Encode a string using <a href="https://en.wikipedia.org/wiki/UTF-8">UTF8</a>. Returns an array of numbers
+            representing bytes.
+          |||»,
+        },
+        {
+«k:          name:» «s:'decodeUTF8'»,
+«k:          params:» [«s:'arr'»],
+«k:          availableSince:» «s:'0.13.0'»,
+«k:          description:» «s:|||
+            Decode an array of numbers representing bytes using <a href="https://en.wikipedia.org/wiki/UTF-8">UTF8</a>.
+            Returns a string.
+          |||»,
+        },
+      ],
+    },
+    {
+«k:      name:» «s:'Manifestation'»,
+«k:      id:» «s:'manifestation'»,
+      «m:// »«x:TODO(sbarzowski): Clean up the example's representation
+»«k:      fields:» [
+        {
+«k:          name:» «s:'manifestIni'»,
+«k:          params:» [«s:'ini'»],
+«k:          description:» [
+            html.p({}, «s:|||
+                Convert the given structure to a string in <a href="http://en.wikipedia.org/wiki/INI_file">INI format</a>. This
+                allows using Jsonnet's
+                object model to build a configuration to be consumed by an application expecting an INI
+                file. The data is in the form of a set of sections, each containing a key/value mapping.
+                These examples should make it clear:
+            |||»),
+            html.pre({}, «s:|||
+              {
+                  main: { a: "1", b: "2" },
+                  sections: {
+                      s1: {x: "11", y: "22", z: "33"},
+                      s2: {p: "yes", q: ""},
+                      empty: {},
+                  }
+              }
+            |||»),
+
+            html.p({}, «s:|||
+              Yields a string containing this INI file:
+            |||»),
+
+            html.pre({}, «s:|||
+              a = 1
+              b = 2
+              [empty]
+              [s1]
+              x = 11
+              y = 22
+              z = 33
+              [s2]
+              p = yes
+              q =
+            |||»),
+          ]
+        },
+        {
+«k:          name:» «s:'manifestPython'»,
+«k:          params:» [«s:'v'»],
+«k:          description:» [
+            html.p({}, «s:|||
+              Convert the given value to a JSON-like form that is compatible with Python. The chief
+              differences are True / False / None instead of true / false / null.
+            |||»),
+
+            html.pre({}, «s:|||
+              {
+                  b: ["foo", "bar"],
+                  c: true,
+                  d: null,
+                  e: { f1: false, f2: 42 },
+              }
+            |||»),
+
+            html.p({}, «s:|||
+                Yields a string containing Python code like:
+            |||»),
+
+            html.pre({}, «s:|||
+              {
+                  "b": ["foo", "bar"],
+                  "c": True,
+                  "d": None,
+                  "e": {"f1": False, "f2": 42}
+              }
+            |||»),
+          ]
+        },
+        {
+«k:          name:» «s:'manifestPythonVars'»,
+«k:          params:» [«s:'conf'»],
+«k:          description:» [
+            html.p({}, «s:|||
+                Convert the given object to a JSON-like form that is compatible with Python. The key
+                difference to <code>std.manifestPython</code> is that the top level is represented as a list
+                of Python global variables.
+            |||»),
+
+            html.pre({}, «s:|||
+              {
+                  b: ["foo", "bar"],
+                  c: true,
+                  d: null,
+                  e: { f1: false, f2: 42 },
+              }
+            |||»),
+
+            html.p({}, «s:|||
+                Yields a string containing this Python code:
+            |||»),
+
+            html.pre({}, «s:|||
+              b = ["foo", "bar"]
+              c = True
+              d = None
+              e = {"f1": False, "f2": 42}
+            |||»),
+          ],
+        },
+        {
+«k:          name:» «s:'manifestJsonEx'»,
+«k:          params:» [«s:'value'», «s:'indent'»],
+«k:          description:» [
+            html.p({}, «s:|||
+                Convert the given object to a JSON form. <code>indent</code> is a string containing
+                one or more whitespaces that are used for indentation:
+            |||»),
+            html.pre({}, «s:|||
+              std.manifestJsonEx(
+                {
+                    x: [1, 2, 3, true, false, null,
+                        "string\nstring"],
+                    y: { a: 1, b: 2, c: [1, 2] },
+                }, "    ")
+            |||»),
+            html.p({}, «s:|||
+              Yields a string containing this JSON object:
+            |||»),
+            html.pre({}, «s:|||
+              {
+                  "x": [
+                      1,
+                      2,
+                      3,
+                      true,
+                      false,
+                      null,
+                      "string\nstring"
+                  ],
+                  "y": {
+                      "a": 1,
+                      "b": 2,
+                      "c": [
+                          1,
+                          2
+                      ]
+                  }
+              }
+            |||»),
+          ]
+        },
+        {
+«k:          name:» «s:'manifestYamlDoc'»,
+«k:          params:» [«s:'value'», «s:'indent_array_in_object=false'»],
+«k:          description:» [
+              html.p({}, «s:|||
+                  Convert the given value to a YAML form. Note that <code>std.manifestJson</code> could also
+                  be used for this purpose, because any JSON is also valid YAML. But this function will
+                  produce more canonical-looking YAML.
+              |||»),
+              html.pre({}, «s:|||
+                std.manifestYamlDoc(
+                  {
+                      x: [1, 2, 3, true, false, null,
+                          "string\nstring\n"],
+                      y: { a: 1, b: 2, c: [1, 2] },
+                  },
+                  indent_array_in_object=false)
+              |||»),
+              html.p({}, «s:|||
+                Yields a string containing this YAML:
+              |||»),
+              html.pre({}, «s:|||
+                  "x":
+                    - 1
+                    - 2
+                    - 3
+                    - true
+                    - false
+                    - null
+                    - |
+                        string
+                        string
+                  "y":
+                    "a": 1
+                    "b": 2
+                    "c":
+                        - 1
+                        - 2
+              |||»),
+              html.p({}, «s:|||
+                The <code>indent_array_in_object</code> param adds additional indentation which some people
+                may find easier to read.
+              |||»),
+          ],
+        },
+        {
+«k:          name:» «s:'manifestYamlStream'»,
+«k:          params:» [«s:'value'», «s:'indent_array_in_object=false'», «s:'c_document_end=false'»],
+«k:          description:» [
+            html.p({}, «s:|||
+                Given an array of values, emit a YAML "stream", which is a sequence of documents separated
+                by <code>---</code> and ending with <code>...</code>.
+            |||»),
+
+            html.pre({}, «s:|||
+              std.manifestYamlStream(
+                ['a', 1, []],
+                indent_array_in_object=false,
+                c_document_end=true)
+            |||»),
+
+            html.p({}, «s:|||
+              Yields this string:
+            |||»),
+
+            html.pre({}, «s:|||
+              ---
+              "a"
+              ---
+              1
+              ---
+              []
+              ...
+            |||»),
+
+            html.p({}, «s:|||
+              The <code>indent_array_in_object</code> param is the same as in <code>manifestYamlDoc</code>.
+            |||»),
+            html.p({}, «s:|||
+              The <code>c_document_end</code> param adds the optional terminating <code>...</code>.
+            |||»),
+          ],
+        },
+        {
+«k:          name:» «s:'manifestXmlJsonml'»,
+«k:          params:» [«s:'value'»],
+«k:          description:» [
+            html.p({}, «s:|||
+                Convert the given <a href="http://www.jsonml.org/">JsonML</a>-encoded value to a string
+                containing the XML.
+            |||»),
+
+            html.pre({}, «s:|||
+              std.manifestXmlJsonml([
+                  'svg', { height: 100, width: 100 },
+                  [
+                      'circle', {
+                      cx: 50, cy: 50, r: 40,
+                      stroke: 'black', 'stroke-width': 3,
+                      fill: 'red',
+                      }
+                  ],
+              ])
+            |||»),
+
+            html.p({}, «s:|||
+                Yields a string containing this XML (all on one line):
+            |||»),
+
+            html.pre({}, html.escape(«s:|||
+              <svg height="100" width="100">
+                  <circle cx="50" cy="50" fill="red" r="40"
+                  stroke="black" stroke-width="3"></circle>;
+              </svg>;
+            |||»)),
+
+            html.p({}, «s:|||
+                Which represents the following image:
+            |||»),
+
+            «s:|||
+              <svg height="100" width="100">
+                  <circle cx="50" cy="50" r="40" stroke="black" stroke-width="3" fill="red" />
+                  Sorry, your browser does not support inline SVG.
+              </svg>
+            |||»,
+
+            html.p({}, «s:|||
+                JsonML is designed to preserve "mixed-mode content" (i.e., textual data outside of or next
+                to elements). This includes the whitespace needed to avoid having all the XML on one line,
+                which is meaningful in XML. In order to have whitespace in the XML output, it must be
+                present in the JsonML input:
+            |||»),
+
+            html.pre({}, «s:|||
+              std.manifestXmlJsonml([
+                  'svg',
+                  { height: 100, width: 100 },
+                  '\n  ',
+                  [
+                      'circle',
+                      {
+                      cx: 50, cy: 50, r: 40, stroke: 'black',
+                      'stroke-width': 3, fill: 'red',
+                      }
+                  ],
+                  '\n',
+              ])
+            |||»),
+          ],
+        },
+      ],
+    },
+    {
+«k:      name:» «s:'Arrays'»,
+«k:      id:» «s:'arrays'»,
+«k:      fields:» [
+        {
+«k:          name:» «s:'makeArray'»,
+«k:          params:» [«s:'sz'», «s:'func'»],
+«k:          description:» «s:|||
+            Create a new array of <code>sz</code> elements by calling <code>func(i)</code> to initialize
+            each element. Func is expected to be a function that takes a single parameter, the index of
+            the element it should initialize.
+          |||»,
+«k:          examples:» [
+            {
+«k:              input:» «s:'std.makeArray(3,function(x) x * x)'»,
+«k:              output:» «f:std.makeArray»(«c:3», «b:function»(x) x * x),
+            },
+          ],
+        },
+        {
+«k:          name:» «s:'member'»,
+«k:          params:» [«s:'arr'», «s:'x'»],
+«k:          availableSince:» «s:'0.15.0'»,
+«k:          description:» «s:|||
+            Returns whether <code>x</code> occurs in <code>arr</code>.
+            Argument <code>arr</code> may be an array or a string.
+          |||»,
+        },
+        {
+«k:          name:» «s:'count'»,
+«k:          params:» [«s:'arr'», «s:'x'»],
+«k:          description:» «s:|||
+            Return the number of times that <code>x</code> occurs in <code>arr</code>.
+          |||»,
+        },
+        {
+«k:          name:» «s:'find'»,
+«k:          params:» [«s:'value'», «s:'arr'»],
+«k:          description:» «s:|||
+            Returns an array that contains the indexes of all occurances of <code>value</code> in
+            <code>arr</code>.
+          |||»,
+        },
+        {
+«k:          name:» «s:'map'»,
+«k:          params:» [«s:'func'», «s:'arr'»],
+«k:          description:» «s:|||
+            Apply the given function to every element of the array to form a new array.
+          |||»,
+        },
+        {
+«k:          name:» «s:'mapWithIndex'»,
+«k:          params:» [«s:'func'», «s:'arr'»],
+«k:          description:» «s:|||
+            Similar to <a href="#map">map</a> above, but it also passes to the function the element's
+            index in the array. The function <code>func</code> is expected to take the index as the
+            first parameter and the element as the second.
+          |||»,
+        },
+        {
+«k:          name:» «s:'filterMap'»,
+«k:          params:» [«s:'filter_func'», «s:'map_func'», «s:'arr'»],
+«k:          description:» «s:|||
+            It first filters, then maps the given array, using the two functions provided.
+          |||»,
+        },
+        {
+«k:          name:» «s:'flatMap'»,
+«k:          params:» [«s:'func'», «s:'arr'»],
+«k:          description:» «s:|||
+            Apply the given function to every element of the array to form a new array then flatten the result.
+            It can be thought of as a generalized map, where each element can get mapped to 0, 1 or more elements.
+          |||»,
+«k:          examples:» [
+            {
+«k:              input:» «s:'std.flatMap(function(x) [x, x], [1, 2, 3])'»,
+«k:              output:» «f:std.flatMap»(«b:function»(x) [x, x], [«c:1», «c:2», «c:3»]),
+            },
+            {
+«k:              input:» «s:'std.flatMap(function(x) if x == 2 then [] else [x], [1, 2, 3])'»,
+«k:              output:» «f:std.flatMap»(«b:function»(x) «b:if» x == «c:2» «b:then» [] «b:else» [x], [«c:1», «c:2», «c:3»]),
+            },
+            {
+«k:              input:» «s:'std.flatMap(function(x) if x == 2 then [] else [x * 3, x * 2], [1, 2, 3])'»,
+«k:              output:» «f:std.flatMap»(«b:function»(x) «b:if» x == «c:2» «b:then» [] «b:else» [x * «c:3», x * «c:2»], [«c:1», «c:2», «c:3»]),
+            },
+          ],
+        },
+        {
+«k:          name:» «s:'filter'»,
+«k:          params:» [«s:'func'», «s:'arr'»],
+«k:          description:» «s:|||
+            Return a new array containing all the elements of <code>arr</code> for which the
+            <code>func</code> function returns true.
+          |||»,
+        },
+        {
+«k:          name:» «s:'foldl'»,
+«k:          params:» [«s:'func'», «s:'arr'», «s:'init'»],
+«k:          description:» «s:|||
+            Classic foldl function. Calls the function on the result of the previous function call and
+            each array element, or <code>init</code> in the case of the initial element. Traverses the
+            array from left to right.
+          |||»,
+        },
+        {
+«k:          name:» «s:'foldr'»,
+«k:          params:» [«s:'func'», «s:'arr'», «s:'init'»],
+«k:          description:» «s:|||
+            Classic foldr function. Calls the function on the result of the previous function call and
+            each array element, or <code>init</code> in the case of the initial element. Traverses the
+            array from right to left.
+          |||»,
+        },
+        {
+«k:          name:» «s:'range'»,
+«k:          params:» [«s:'from'», «s:'to'»],
+«k:          description:» «s:|||
+            Return an array of ascending numbers between the two limits, inclusively.
+          |||»,
+        },
+        {
+«k:          name:» «s:'repeat'»,
+«k:          params:» [«s:'what'», «s:'count'»],
+«k:          availableSince:» «s:'0.15.0'»,
+«k:          description:» «s:|||
+            Repeats an array or a string <code>what</code> a number of times specified by an integer <code>count</code>.
+          |||»,
+«k:          examples:» [
+            {
+«k:              input:» «s:'std.repeat([1, 2, 3], 3)'»,
+«k:              output:» «f:std.repeat»([«c:1», «c:2», «c:3»], «c:3»),
+            },
+            {
+«k:              input:» «s:'std.repeat("blah", 2)'»,
+«k:              output:» «f:std.repeat»(«s:'blah'», «c:2»),
+            },
+          ],
+        },
+        {
+«k:          name:» «s:'join'»,
+«k:          params:» [«s:'sep'», «s:'arr'»],
+«k:          description:» «s:|||
+            If <code>sep</code> is a string, then <code>arr</code> must be an array of strings, in which
+            case they are concatenated with <code>sep</code> used as a delimiter. If <code>sep</code>
+            is an array, then <code>arr</code> must be an array of arrays, in which case the arrays are
+            concatenated in the same way, to produce a single array.
+          |||»,
+«k:          examples:» [
+            {
+«k:              input:» «s:'std.join(".", ["www", "google", "com"])'»,
+«k:              output:» «f:std.join»(«s:'.'», [«s:'www'», «s:'google'», «s:'com'»]),
+            },
+            {
+«k:              input:» «s:'std.join([9, 9], [[1], [2, 3]])'»,
+«k:              output:» «f:std.join»([«c:9», «c:9»], [[«c:1»], [«c:2», «c:3»]]),
+            },
+          ],
+        },
+        {
+«k:          name:» «s:'lines'»,
+«k:          params:» [«s:'arr'»],
+«k:          description:» «s:|||
+            Concatenate an array of strings into a text file with newline characters after each string.
+            This is suitable for constructing bash scripts and the like.
+          |||»,
+        },
+        {
+«k:          name:» «s:'flattenArrays'»,
+«k:          params:» [«s:'arr'»],
+«k:          description:» «s:|||
+            Concatenate an array of arrays into a single array.
+          |||»,
+«k:          examples:» [
+            {
+«k:              input:» «s:'std.flattenArrays([[1, 2], [3, 4], [[5, 6], [7, 8]]])'»,
+«k:              output:» «f:std.flattenArrays»([[«c:1», «c:2»], [«c:3», «c:4»], [[«c:5», «c:6»], [«c:7», «c:8»]]]),
+            },
+          ],
+        },
+        {
+«k:          name:» «s:'reverse'»,
+«k:          params:» [«s:'arrs'»],
+«k:          availableSince:» «s:'0.13.0'»,
+«k:          description:» «s:|||
+            Reverses an array.
+          |||»,
+        },
+        {
+«k:          name:» «s:'sort'»,
+«k:          params:» [«s:'arr'», «s:'keyF=id'»],
+«k:          description:» html.paragraphs([
+            «s:|||
+              Sorts the array using the <= operator.
+            |||»,
+            «s:|||
+              Optional argument <code>keyF</code> is a single argument function used to extract comparison key from each array element.
+              Default value is identity function <code>keyF=function(x) x</code>.
+            |||»,
+          ]),
+        },
+        {
+«k:          name:» «s:'uniq'»,
+«k:          params:» [«s:'arr'», «s:'keyF=id'»],
+«k:          description:» html.paragraphs([
+            «s:|||
+              Removes successive duplicates. When given a sorted array, removes all duplicates.
+            |||»,
+            «s:|||
+              Optional argument <code>keyF</code> is a single argument function used to extract comparison key from each array element.
+              Default value is identity function <code>keyF=function(x) x</code>.
+            |||»,
+          ]),
+        },
+      ],
+    },
+    {
+«k:      name:» «s:'Sets'»,
+«k:      id:» «s:'sets'»,
+«k:      intro:» html.paragraphs([
+        «s:|||
+          Sets are represented as ordered arrays without duplicates.
+        |||»,
+        «s:|||
+          Note that the <code>std.set*</code> functions rely on the uniqueness and ordering
+          on arrays passed to them to work. This can be guarenteed by using <code>std.set(arr)</code>.
+          If that is not the case, the functions will quietly return non-meaningful results.
+        |||»,
+        «s:|||
+          All <code>set.set*</code> functions accept <code>keyF</code> function of one argument, which can be
+          used to extract key to use from each element. All Set operations then use extracted key for the purpose
+          of identifying uniqueness. Default value is identity function <code>local id = function(x) x</code>.
+        |||»,
+      ]),
+«k:      fields:» [
+        {
+«k:          name:» «s:'set'»,
+«k:          params:» [«s:'arr'», «s:'keyF=id'»],
+«k:          description:» «s:|||
+            Shortcut for std.uniq(std.sort(arr)).
+          |||»,
+        },
+        {
+«k:          name:» «s:'setInter'»,
+«k:          params:» [«s:'a'», «s:'b'», «s:'keyF=id'»],
+«k:          description:» «s:|||
+            Set intersection operation (values in both a and b).
+          |||»,
+        },
+        {
+«k:          name:» «s:'setUnion'»,
+«k:          params:» [«s:'a'», «s:'b'», «s:'keyF=id'»],
+«k:          description:» «s:|||
+            Set union operation (values in any of <code>a</code> or <code>b</code>). Note that + on sets will simply
+            concatenate
+            the arrays, possibly forming an array that is not a set (due to not being ordered without
+            duplicates).
+          |||»,
+«k:          examples:» [
+            {
+«k:              input:» «s:'std.setUnion([1, 2], [2, 3])'»,
+«k:              output:» «f:std.setUnion»([«c:1», «c:2»], [«c:2», «c:3»]),
+            },
+            {
+              input: «s:'std.setUnion([{n:"A", v:1}, {n:"B"}], [{n:"A", v: 9999}, {n:"C"}], keyF=function(x) x.n)'»,
+              output: «f:std.setUnion»([{ n: «s:'A'», v: «c:1» }, { n: «s:'B'» }], [{ n: «s:'A'», v: «c:9999» }, { n: «s:'C'» }], keyF=function(x) x.n),
+            },
+          ],
+        },
+        {
+«k:          name:» «s:'setDiff'»,
+«k:          params:» [«s:'a'», «s:'b'», «s:'keyF=id'»],
+«k:          description:» «s:|||
+            Set difference operation (values in a but not b).
+          |||»,
+        },
+        {
+«k:          name:» «s:'setMember'»,
+«k:          params:» [«s:'x'», «s:'arr'», «s:'keyF=id'»],
+«k:          description:» «s:|||
+            Returns <code>true</code> if x is a member of array, otherwise <code>false</code>.
+          |||»,
+        },
+      ],
+    },
+    {
+«k:      name:» «s:'Encoding'»,
+«k:      id:» «s:'encoding'»,
+«k:      fields:» [
+        {
+«k:          name:» «s:'base64'»,
+«k:          params:» [«s:'input'»],
+«k:          description:» «s:|||
+            Encodes the given value into a base64 string. The encoding sequence is <code>A-Za-z0-9+/</code> with
+            <code>=</code>
+            to pad the output to a multiple of 4 characters. The value can be a string or an array of
+            numbers, but the codepoints / numbers must be in the 0 to 255 range. The resulting string
+            has no line breaks.
+          |||»,
+        },
+        {
+«k:          name:» «s:'base64DecodeBytes'»,
+«k:          params:» [«s:'str'»],
+«k:          description:» «s:|||
+            Decodes the given base64 string into an array of bytes (number values). Currently assumes
+            the input string has no linebreaks and is padded to a multiple of 4 (with the = character).
+            In other words, it consumes the output of std.base64().
+          |||»,
+        },
+        {
+«k:          name:» «s:'base64Decode'»,
+«k:          params:» [«s:'str'»],
+«k:          description:» html.paragraphs([
+            «s:|||
+              <em>Deprecated, use <code>std.base64DecodeBytes</code> and decode the string explicitly (e.g. with <code>std.decodeUTF8</code>) instead.</code></em>
+            |||»,
+            «s:|||
+              Behaves like std.base64DecodeBytes() except returns a naively encoded string instead of an array of bytes.
+            |||»,
+          ]),
+        },
+        {
+«k:          name:» «s:'md5'»,
+«k:          params:» [«s:'s'»],
+«k:          description:» «s:|||
+            Encodes the given value into an MD5 string.
+          |||»,
+        },
+      ],
+    },
+    {
+«k:      name:» «s:'JSON Merge Patch'»,
+«k:      id:» «s:'json_merge_patch'»,
+«k:      fields:» [
+        {
+«k:          name:» «s:'mergePatch'»,
+«k:          params:» [«s:'target'», «s:'patch'»],
+«k:          description:» «s:|||
+            Applies <code>patch</code> to <code>target</code>
+            according to <a href="https://tools.ietf.org/html/rfc7396">RFC7396</a>
+          |||»,
+        },
+      ],
+    },
+    {
+«k:      name:» «s:'Debugging'»,
+«k:      id:» «s:'debugging'»,
+«k:      fields:» [
+        {
+«k:          name:» «s:'trace'»,
+«k:          params:» [«s:'target'», «s:'patch'»],
+«k:          availableSince:» «s:'0.11.0'»,
+«k:          description:» [
+            html.p({}, «s:|||
+                Outputs the given string <code>str</code> to stderr and
+                returns <code>rest</code> as the result.
+            |||»),
+            html.p({}, «s:|||
+              Example:
+            |||»),
+            html.p({},
+              html.pre({}, «s:|||
+                local conditionalReturn(cond, in1, in2) =
+                  if (cond) then
+                      std.trace('cond is true returning '
+                              + std.toString(in1), in1)
+                  else
+                      std.trace('cond is false returning '
+                              + std.toString(in2), in2);
+
+                {
+                    a: conditionalReturn(true, { b: true }, { c: false }),
+                }
+              |||»),
+            ),
+            html.p({}, «s:|||
+              Prints:
+            |||»),
+            html.p({},
+              html.pre({}, «s:|||
+                TRACE: test.jsonnet:3 cond is true returning {"b": true}
+                {
+                    "a": {
+                        "b": true
+                    }
+                }
+              |||»),
+            ),
+          ],
+        },
+      ],
+    },
+  ],
+}

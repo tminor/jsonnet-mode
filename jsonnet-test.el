@@ -26,6 +26,7 @@
 (require 'dash)
 (require 's)
 (require 'f)
+(require 'faceup)
 
 ;; TODO(tminor): Remove the following line after SMIE becomes default.
 (setq jsonnet-use-smie t)
@@ -52,6 +53,7 @@
           t
         `(nil . ,(format "\nGiven indented text \n\n%s\n\nwas instead indented to \n\n%s\n\n"
                          text text-with-indent))))))
+
 (buttercup-define-matcher :to-render-as (text expect)
   (let* ((text (s-join "\n" (funcall text)))
          (expect (s-join "\n" (funcall expect)))
@@ -83,6 +85,28 @@
                          text
                          rendered-text
                          expect))))))
+
+(buttercup-define-matcher :highlighted (source-file)
+  (let* ((tests-dir (if (equal (-last-item (split-string (expand-file-name ".") "/"))
+                               "tests")
+                        (expand-file-name "./")
+                      (expand-file-name "tests/")))
+         (source-no-properties (save-excursion
+                                 (find-file (concat tests-dir (funcall source-file)))
+                                 (buffer-substring-no-properties (point-min) (point-max))))
+         (faceup-source (save-excursion
+                          (find-file (concat tests-dir (funcall source-file) ".faceup"))
+                          (buffer-substring-no-properties (point-min) (point-max))))
+         (faceup-results (with-current-buffer (get-buffer-create "tmp-faceup")
+                           (insert source-no-properties)
+                           (jsonnet-mode)
+                           (font-lock-debug-fontify)
+                           (faceup-markup-buffer)))
+         (faceup-test-explain t)
+         (results (faceup-test-equal faceup-results faceup-source)))
+    (if results
+        `(nil . ,(pp-to-string results))
+      t)))
 
 (provide 'jsonnet-test)
 ;;; jsonnet-test.el ends here
