@@ -97,14 +97,14 @@
          (faceup-source (save-excursion
                           (find-file (concat tests-dir (funcall source-file) ".faceup"))
                           (buffer-substring-no-properties (point-min) (point-max))))
-         (faceup-results (with-current-buffer (get-buffer-create "tmp-faceup")
+         (faceup-results (with-temp-buffer
                            (insert source-no-properties)
                            (jsonnet-mode)
                            (font-lock-debug-fontify)
                            (faceup-markup-buffer)))
          (faceup-test-explain t)
          (results (faceup-test-equal faceup-results faceup-source)))
-    (if results
+    (if (listp results)
         `(nil . ,(pp-to-string results))
       t)))
 
