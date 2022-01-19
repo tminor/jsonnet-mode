@@ -100,7 +100,7 @@
          (faceup-results (with-temp-buffer
                            (insert source-no-properties)
                            (jsonnet-mode)
-                           (font-lock-debug-fontify)
+                           (font-lock-fontify-buffer)
                            (faceup-markup-buffer)))
          (faceup-test-explain t)
          (results (faceup-test-equal faceup-results faceup-source)))
