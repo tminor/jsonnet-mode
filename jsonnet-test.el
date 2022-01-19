@@ -86,26 +86,30 @@
                          rendered-text
                          expect))))))
 
-(buttercup-define-matcher :highlighted (source-file)
-  (let* ((tests-dir (if (equal (-last-item (split-string (expand-file-name ".") "/"))
-                               "tests")
-                        (expand-file-name "./")
-                      (expand-file-name "tests/")))
-         (source-no-properties (save-excursion
-                                 (find-file (concat tests-dir (funcall source-file)))
-                                 (buffer-substring-no-properties (point-min) (point-max))))
-         (faceup-source (save-excursion
-                          (find-file (concat tests-dir (funcall source-file) ".faceup"))
-                          (buffer-substring-no-properties (point-min) (point-max))))
+(defun jsonnet-test--format-faceup-results (faceup-results source-beg)
+  "Format FACEUP-RESULTS using the correct source line indicated by SOURCE-BEG."
+  (mapconcat (lambda (line)
+               (let ((line-num (+ source-beg (nth 1 line)))
+                     (want (car (nth 2 line)))
+                     (got (car (nth 3 line))))
+                 (concat "      Line " (int-to-string line-num) ":\n"
+                         "        +" want "\n"
+                         "        -" got)))
+             faceup-results "\n"))
+
+(buttercup-define-matcher :to-produce-faceup-markup (source-lines faceup-markup source-beg)
+  (let* ((source (s-join "\n" (funcall source-lines)))
          (faceup-results (with-temp-buffer
-                           (insert source-no-properties)
+                           (insert source)
                            (jsonnet-mode)
                            (font-lock-fontify-buffer)
                            (faceup-markup-buffer)))
          (faceup-test-explain t)
-         (results (faceup-test-equal faceup-results faceup-source)))
+         (results (faceup-test-equal (s-join "\n" (funcall faceup-markup))
+                                     faceup-results)))
     (if (listp results)
-        `(nil . ,(pp-to-string results))
+        `(nil . ,(concat "\n    Incorrect faceup at the following locations in tests/jsonnet-font-lock-test.el (+want -got):\n"
+                         (jsonnet-test--format-faceup-results results (funcall source-beg))))
       t)))
 
 (provide 'jsonnet-test)
