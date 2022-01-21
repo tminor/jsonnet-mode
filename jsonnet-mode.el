@@ -185,6 +185,10 @@ For example:
 
 (defconst jsonnet-multiline-string-syntax (string-to-syntax "\""))
 
+(defconst jsonnet-multiline-string-beg-regexp "[[:space:]]*\\(|||\\)\n")
+
+(defconst jsonnet-multiline-string-end-regexp "[[:space:]]*\\(|||\\)[[:space:]]*%?[^\n,]*")
+
 (defun jsonnet-smie-rules (kind token)
   "SMIE rules for KIND and TOKEN."
   ;; FIXME: Needs more documentation.
@@ -354,20 +358,7 @@ For example:
           "function"))
        (t tok))))))
 
-(defun jsonnet--font-lock-open-multiline-string (start)
-  "Set syntax of jsonnet multiline |||...||| opening delimiter.
-START is the position of |||.
-Moves point to the first character following open delimiter."
-  (let* ((ppss (save-excursion (syntax-ppss start)))
-         (in-string (nth 3 ppss))
-         (in-comment (nth 4 ppss)))
-    (unless (or in-string in-comment)
-      (let ((prefix (jsonnet--find-multiline-string-prefix start)))
-        (put-text-property start (+ 3 start) 'jsonnet-multiline-string-prefix prefix)
-        ;; tell jit-lock to refontify if this block is modified
-        (put-text-property start (point) 'syntax-multiline t)
-        (goto-char (+ 3 start))
-        jsonnet-multiline-string-syntax))))
+
 
 (defun jsonnet-smie--indent-inside-multiline-string ()
   "Calculate indentation when point is inside a multiline string."
@@ -400,18 +391,36 @@ Moves point to first non-prefix character."
         (concat prefix " ")
       prefix)))
 
-(defun jsonnet--font-lock-close-multiline-string (prefix _)
-  "Set syntax of jsonnet multiline |||...||| closing delimiter.
-The second argument is the position of |||.  PREFIX is
-the (whitespace) preceding |||."
-  (let* ((ppss (syntax-ppss))
+(defun jsonnet--font-lock-open-multiline-string (start)
+  "Set syntax of jsonnet multiline |||...||| opening delimiter.
+START is the position of |||.
+Moves point to the first character following open delimiter."
+  (let* ((ppss (save-excursion (syntax-ppss start)))
          (in-string (nth 3 ppss))
-         (string-start (nth 8 ppss)))
-    (when in-string
-      (let ((ignored-prefix (get-text-property string-start 'jsonnet-multiline-string-prefix)))
-        (if (and ignored-prefix
-                 (not (string-prefix-p ignored-prefix prefix)))
-            jsonnet-multiline-string-syntax)))))
+         (in-comment (nth 4 ppss)))
+    (unless (or in-string in-comment)
+      (let ((prefix (jsonnet--find-multiline-string-prefix start))
+            (line (save-excursion
+                    (next-logical-line)
+                    (beginning-of-line)
+                    (re-search-forward ".*$" nil t)
+                    (match-string 0))))
+        (while (or (string-match-p "^$" line) (string-prefix-p prefix line))
+          (next-logical-line)
+          (beginning-of-line)
+          (save-excursion
+            (re-search-forward "[[:space:]]*[^\n]*$" nil t)
+            (setq line (match-string 0))))
+        (when-let ((end (and (looking-at "[[:space:]]*|||")
+                             (progn
+                               (re-search-forward jsonnet-multiline-string-end-regexp nil t)
+                               (match-end 1)))))
+          (put-text-property start end
+                             'font-lock-multiline t)
+          ;; tell jit-lock to refontify if this block is modified
+          (put-text-property start (point) 'syntax-multiline t)
+          (goto-char (- end 4)))
+        jsonnet-multiline-string-syntax))))
 
 (defun jsonnet--syntax-propertize-function (start end)
   (goto-char start)
@@ -419,9 +428,7 @@ the (whitespace) preceding |||."
    (syntax-propertize-rules
     ("[[:space:]]*\\(|\\{3\\}\\)\n"
      (1 (jsonnet--font-lock-open-multiline-string (match-beginning 1))))
-    ("^\\([[:space:]]*\\)\\(|\\{3\\}\\)[[:space:]]*%?[^\n,]*"
-     (2 (jsonnet--font-lock-close-multiline-string
-         (match-string 1) (match-beginning 2)))))
+    ("|||" (0 jsonnet-multiline-string-syntax)))
    (point) end))
 
 ;; Syntax table
