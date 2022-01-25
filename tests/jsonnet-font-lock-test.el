@@ -202,4 +202,18 @@
               "            - 2"
               "  |||»),"
               "]")
-            4)))
+            164))
+
+  (it "should correctly highlight multiline strings with identical openers/closer"
+    (expect '("["
+              "  |||"
+              "    foo"
+              "  |||"
+              "]")
+            :to-produce-faceup-markup
+            '("["
+              "  «s:|||"
+              "    foo"
+              "  |||»"
+              "]")
+            207)))
