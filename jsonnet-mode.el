@@ -513,7 +513,7 @@ If not inside of a multiline string, return nil."
 ;; Experimental algorithm
 (defun jsonnet--indent-in-parens ()
   "Compute the indent of the current line, given it is inside parentheses."
-  (if (jsonnet--line-matches-regex-p "^\s*)") 0 2))
+  (if (jsonnet--line-matches-regex-p "^\s*)") 0 jsonnet-indent-level))
 
 (defun jsonnet--indent-in-braces ()
   "Compute the indent of the current line, given it is inside braces."
@@ -522,11 +522,11 @@ If not inside of a multiline string, return nil."
    ((save-excursion
       (forward-line -1)
       (jsonnet--line-matches-regex-p ":\s*$")) 4)
-   (t 2)))
+   (t jsonnet-indent-level)))
 
 (defun jsonnet--indent-in-brackets ()
   "Compute the indent of the current line, given it is inside braces."
-  (if (jsonnet--line-matches-regex-p "^\s*]") 0 2))
+  (if (jsonnet--line-matches-regex-p "^\s*]") 0 jsonnet-indent-level))
 
 (defun jsonnet--indent-toplevel ()
   "Compute the indent of the current line, given it is not inside any delimiter."
@@ -558,7 +558,7 @@ If not inside of a multiline string, return nil."
      ((jsonnet--find-current-multiline-string)
       (let ((multiline-string-ends (jsonnet--line-matches-regex-p "^\s*|||")))
         (goto-char (jsonnet--find-current-multiline-string))
-        (+ (current-indentation) (if multiline-string-ends 0 2))))
+        (+ (current-indentation) (if multiline-string-ends 0 jsonnet-indent-level))))
      ;; Otherwise, indent according to the kind of delimiter we are nested in.
      (t
       (let ((state (syntax-ppss)))
