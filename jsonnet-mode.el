@@ -643,7 +643,8 @@ TYPE is an opening paren-like character."
 ;; Utilities for evaluating and jumping around Jsonnet code.
 ;;;###autoload
 (defun jsonnet-eval-buffer ()
-  "Run jsonnet with the path of the current file."
+  "Run jsonnet with the path of the current file. This also works for
+remote files accessed over TRAMP."
   (interactive)
   (let ((file-to-eval (file-truename (buffer-file-name)))
         (search-dirs jsonnet-library-search-directories)
@@ -659,16 +660,18 @@ TYPE is an opening paren-like character."
                         (cl-loop for dir in search-dirs
                                  collect "-J"
                                  collect dir)
-                        (list file-to-eval))))
+                        (list (file-local-name file-to-eval))))
+          (dir-to-use-for-process-file (file-name-directory (buffer-file-name))))
       (with-current-buffer (get-buffer-create output-buffer-name)
         (setq buffer-read-only nil)
         (erase-buffer)
-        (if (zerop (apply #'call-process cmd nil t nil args))
-            (progn
-              (when (fboundp 'json-mode)
-                (json-mode))
-              (view-mode))
-          (compilation-mode nil))
+        (let ((default-directory dir-to-use-for-process-file))
+          (if (zerop (apply #'process-file cmd nil t nil args))
+              (progn
+                (when (fboundp 'json-mode)
+                  (json-mode))
+                (view-mode))
+            (compilation-mode nil)))
         (goto-char (point-min))
         (display-buffer (current-buffer) '(nil (inhibit-same-window . t)))))))
 
