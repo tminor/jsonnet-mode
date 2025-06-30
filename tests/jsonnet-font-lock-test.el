@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t -*-
+
 (describe "Syntax propertization"
 
   (it "should correctly highlight multiline strings"

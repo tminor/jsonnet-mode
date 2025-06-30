@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t -*-
+
 (describe "jsonnet-eval-buffer"
   (after-each (delete-other-windows))
 

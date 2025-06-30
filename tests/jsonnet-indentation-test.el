@@ -1,3 +1,5 @@
+;; -*- lexical-binding: t -*-
+
 (describe "The indentation function"
 
   (describe "inside function parameters/arguments"
